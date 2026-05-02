@@ -1,0 +1,45 @@
+{
+  "name": "zaodirect-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "db:setup": "node src/scripts/setupDb.js",
+    "db:init": "node src/scripts/initDb.js",
+    "db:seed": "node src/scripts/seedAdmin.js",
+    "db:seed:demo": "node src/scripts/seedDemoData.js",
+    "db:migrate:listings-photos": "node src/scripts/migrateListingPhotos.js",
+    "db:migrate:order-shipments": "node src/scripts/migrateOrderShipments.js",
+    "db:migrate:user-profile-assets": "node src/scripts/migrateUserProfileAssets.js",
+    "db:migrate:mvp-operations": "node src/scripts/migrateMvpOperations.js",
+    "db:migrate:user-management": "node src/scripts/migrateUserManagement.js",
+    "db:migrate:shipment-events": "node src/scripts/migrateShipmentEvents.js",
+    "db:migrate:audit-events": "node src/scripts/migrateAuditEvents.js",
+    "db:migrate:farmer-procurement-flow": "node src/scripts/migrateFarmerProcurementStatusFlow.js",
+    "db:migrate:farmer-procurement-open": "node src/scripts/migrateFarmerProcurementOpenStatus.js",
+    "db:migrate:farmer-procurement-allocated": "node src/scripts/migrateFarmerProcurementAllocatedStatus.js",
+    "db:migrate:dispute-cases": "node src/scripts/migrateDisputeCases.js",
+    "db:migrate:batch-shipment-lots": "node src/scripts/migrateBatchShipmentLots.js",
+    "db:cleanup:shipment-timeline": "node src/scripts/cleanupShipmentTimeline.js",
+    "db:migrate:intl-order-statuses": "node src/scripts/migrateInternationalOrderStatuses.js",
+    "db:sync:settled-paid": "node src/scripts/syncSettledPaidStatus.js",
+    "db:cleanup:smoke": "node src/scripts/cleanupSmokeTestData.js",
+    "db:reset:keep-admin": "node src/scripts/resetKeepAdmin.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "pg": "^8.13.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
