@@ -128,10 +128,9 @@ function Register() {
       if (target) {
         target.innerHTML = "";
         window.google.accounts.id.renderButton(target, {
+          type: "icon",
           theme: "outline",
           size: "large",
-          width: 320,
-          text: "signup_with",
         });
       }
     };
@@ -172,9 +171,6 @@ function Register() {
         </MDBox>
         <MDBox pt={4} pb={3} px={3}>
           <MDBox component="form" role="form" method="POST" onSubmit={submitHandler}>
-            <MDBox mb={2} display="flex" justifyContent="center">
-              <div id="google-signup-register" />
-            </MDBox>
             {googleError && (
               <MDBox mb={2}>
                 <MDTypography variant="caption" color="error" fontWeight="light">
@@ -182,11 +178,6 @@ function Register() {
                 </MDTypography>
               </MDBox>
             )}
-            <MDBox mb={2}>
-              <MDTypography variant="button" color="text" fontWeight="regular" textAlign="center">
-                or sign up with email
-              </MDTypography>
-            </MDBox>
             <MDBox mb={2}>
               <MDTypography variant="button" color="text" fontWeight="regular">
                 Account type: Farmer
@@ -291,6 +282,14 @@ function Register() {
               <MDButton variant="gradient" color="info" fullWidth type="submit">
                 sign up
               </MDButton>
+            </MDBox>
+            <MDBox mt={2} mb={1} textAlign="center">
+              <MDTypography variant="button" color="text" fontWeight="regular">
+                or sign up with
+              </MDTypography>
+            </MDBox>
+            <MDBox mb={2} display="flex" justifyContent="center">
+              <div id="google-signup-register" />
             </MDBox>
             <MDBox mt={3} mb={1} textAlign="center">
               <MDTypography variant="button" color="text">

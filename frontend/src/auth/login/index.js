@@ -62,10 +62,9 @@ function Login() {
       if (target) {
         target.innerHTML = "";
         window.google.accounts.id.renderButton(target, {
+          type: "icon",
           theme: "outline",
           size: "large",
-          width: 320,
-          text: "signin_with",
         });
       }
     };
@@ -154,15 +153,12 @@ function Login() {
           <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
             Sign in
           </MDTypography>
-          <MDTypography display="block" variant="button" color="white" my={1}>
-            Sign in with your account or continue with Google
-          </MDTypography>
+          <MDBox mt={1} mb={1} display="flex" justifyContent="center">
+            <div id="google-signin-login" />
+          </MDBox>
         </MDBox>
         <MDBox pt={4} pb={3} px={3}>
           <MDBox component="form" role="form" method="POST" onSubmit={submitHandler}>
-            <MDBox mb={2} display="flex" justifyContent="center">
-              <div id="google-signin-login" />
-            </MDBox>
             {googleError && (
               <MDBox mb={2}>
                 <MDTypography variant="caption" color="error" fontWeight="light">
