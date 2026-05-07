@@ -27,7 +27,6 @@ import { InputLabel } from "@mui/material";
 function Register() {
   const authContext = useContext(AuthContext);
   const [googleError, setGoogleError] = useState("");
-  const [googleReady, setGoogleReady] = useState(false);
 
   const [inputs, setInputs] = useState({
     name: "",
@@ -127,7 +126,6 @@ function Register() {
           }
         },
       });
-      setGoogleReady(true);
       const target = document.getElementById("google-signup-register");
       if (target) {
         target.innerHTML = "";
@@ -305,8 +303,8 @@ function Register() {
               </MDTypography>
             </MDBox>
             <MDBox mb={2} display="flex" justifyContent="center" alignItems="center" gap={1}>
-              <IconButton onClick={handleGoogleClick} color="info" aria-label="Sign up with Google">
-                <GoogleIcon />
+              <IconButton size="small" onClick={handleGoogleClick} color="info" aria-label="Sign up with Google">
+                <GoogleIcon sx={{ fontSize: 18 }} />
               </IconButton>
               <div id="google-signup-register" style={{ display: "none" }} />
             </MDBox>

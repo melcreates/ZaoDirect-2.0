@@ -30,7 +30,6 @@ function Login() {
   const [credentialsErros, setCredentialsError] = useState(null);
   const [rememberMe, setRememberMe] = useState(false);
   const [googleError, setGoogleError] = useState("");
-  const [googleReady, setGoogleReady] = useState(false);
 
   const [inputs, setInputs] = useState({
     email: "",
@@ -61,7 +60,6 @@ function Login() {
           }
         },
       });
-      setGoogleReady(true);
       const target = document.getElementById("google-signin-login");
       if (target) {
         target.innerHTML = "";
@@ -170,8 +168,8 @@ function Login() {
             Sign in
           </MDTypography>
           <MDBox mt={1} mb={1} display="flex" justifyContent="center" alignItems="center" gap={1}>
-            <IconButton onClick={handleGoogleClick} sx={{ color: "white" }} aria-label="Sign in with Google">
-              <GoogleIcon />
+            <IconButton size="small" onClick={handleGoogleClick} sx={{ color: "white" }} aria-label="Sign in with Google">
+              <GoogleIcon sx={{ fontSize: 18 }} />
             </IconButton>
             <div id="google-signin-login" style={{ display: "none" }} />
           </MDBox>
