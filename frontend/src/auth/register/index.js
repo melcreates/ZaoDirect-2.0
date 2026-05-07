@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 // @mui material components
 import Card from "@mui/material/Card";
 import Checkbox from "@mui/material/Checkbox";
+import IconButton from "@mui/material/IconButton";
+import GoogleIcon from "@mui/icons-material/Google";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
@@ -25,6 +27,7 @@ import { InputLabel } from "@mui/material";
 function Register() {
   const authContext = useContext(AuthContext);
   const [googleError, setGoogleError] = useState("");
+  const [googleReady, setGoogleReady] = useState(false);
 
   const [inputs, setInputs] = useState({
     name: "",
@@ -124,6 +127,7 @@ function Register() {
           }
         },
       });
+      setGoogleReady(true);
       const target = document.getElementById("google-signup-register");
       if (target) {
         target.innerHTML = "";
@@ -147,6 +151,18 @@ function Register() {
     script.onload = initializeGoogle;
     document.body.appendChild(script);
   }, [authContext]);
+
+  const handleGoogleClick = () => {
+    if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+      setGoogleError("Google sign up is not configured.");
+      return;
+    }
+    if (!window.google?.accounts?.id) {
+      setGoogleError("Google sign up is still loading. Please try again.");
+      return;
+    }
+    window.google.accounts.id.prompt();
+  };
 
   return (
     <CoverLayout image={bgImage}>
@@ -288,8 +304,11 @@ function Register() {
                 or sign up with
               </MDTypography>
             </MDBox>
-            <MDBox mb={2} display="flex" justifyContent="center">
-              <div id="google-signup-register" />
+            <MDBox mb={2} display="flex" justifyContent="center" alignItems="center" gap={1}>
+              <IconButton onClick={handleGoogleClick} color="info" aria-label="Sign up with Google">
+                <GoogleIcon />
+              </IconButton>
+              <div id="google-signup-register" style={{ display: "none" }} />
             </MDBox>
             <MDBox mt={3} mb={1} textAlign="center">
               <MDTypography variant="button" color="text">

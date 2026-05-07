@@ -6,6 +6,8 @@ import { Link } from "react-router-dom";
 // @mui material components
 import Card from "@mui/material/Card";
 import Switch from "@mui/material/Switch";
+import IconButton from "@mui/material/IconButton";
+import GoogleIcon from "@mui/icons-material/Google";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
@@ -28,6 +30,7 @@ function Login() {
   const [credentialsErros, setCredentialsError] = useState(null);
   const [rememberMe, setRememberMe] = useState(false);
   const [googleError, setGoogleError] = useState("");
+  const [googleReady, setGoogleReady] = useState(false);
 
   const [inputs, setInputs] = useState({
     email: "",
@@ -58,6 +61,7 @@ function Login() {
           }
         },
       });
+      setGoogleReady(true);
       const target = document.getElementById("google-signin-login");
       if (target) {
         target.innerHTML = "";
@@ -81,6 +85,18 @@ function Login() {
     script.onload = initializeGoogle;
     document.body.appendChild(script);
   }, [authContext]);
+
+  const handleGoogleClick = () => {
+    if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+      setGoogleError("Google sign in is not configured.");
+      return;
+    }
+    if (!window.google?.accounts?.id) {
+      setGoogleError("Google sign in is still loading. Please try again.");
+      return;
+    }
+    window.google.accounts.id.prompt();
+  };
 
   const changeHandler = (e) => {
     setInputs({
@@ -153,8 +169,11 @@ function Login() {
           <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
             Sign in
           </MDTypography>
-          <MDBox mt={1} mb={1} display="flex" justifyContent="center">
-            <div id="google-signin-login" />
+          <MDBox mt={1} mb={1} display="flex" justifyContent="center" alignItems="center" gap={1}>
+            <IconButton onClick={handleGoogleClick} sx={{ color: "white" }} aria-label="Sign in with Google">
+              <GoogleIcon />
+            </IconButton>
+            <div id="google-signin-login" style={{ display: "none" }} />
           </MDBox>
         </MDBox>
         <MDBox pt={4} pb={3} px={3}>
