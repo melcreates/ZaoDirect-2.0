@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 // react-router-dom components
 import { Link } from "react-router-dom";
@@ -6,13 +6,6 @@ import { Link } from "react-router-dom";
 // @mui material components
 import Card from "@mui/material/Card";
 import Switch from "@mui/material/Switch";
-import Grid from "@mui/material/Grid";
-import MuiLink from "@mui/material/Link";
-
-// @mui icons
-import FacebookIcon from "@mui/icons-material/Facebook";
-import GitHubIcon from "@mui/icons-material/GitHub";
-import GoogleIcon from "@mui/icons-material/Google";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
@@ -34,6 +27,7 @@ function Login() {
 
   const [credentialsErros, setCredentialsError] = useState(null);
   const [rememberMe, setRememberMe] = useState(false);
+  const [googleError, setGoogleError] = useState("");
 
   const [inputs, setInputs] = useState({
     email: "",
@@ -46,6 +40,48 @@ function Login() {
   });
 
   const handleSetRememberMe = () => setRememberMe(!rememberMe);
+
+  useEffect(() => {
+    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+
+    const initializeGoogle = () => {
+      if (!window.google?.accounts?.id) return;
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response) => {
+          try {
+            const auth = await AuthService.googleAuth(response.credential);
+            authContext.login(auth.access_token, auth.refresh_token, auth.user);
+          } catch (err) {
+            setGoogleError(err?.message || "Google sign in failed.");
+          }
+        },
+      });
+      const target = document.getElementById("google-signin-login");
+      if (target) {
+        target.innerHTML = "";
+        window.google.accounts.id.renderButton(target, {
+          theme: "outline",
+          size: "large",
+          width: 320,
+          text: "signin_with",
+        });
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      initializeGoogle();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogle;
+    document.body.appendChild(script);
+  }, [authContext]);
 
   const changeHandler = (e) => {
     setInputs({
@@ -118,26 +154,22 @@ function Login() {
           <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
             Sign in
           </MDTypography>
-          <Grid container spacing={3} justifyContent="center" sx={{ mt: 1, mb: 2 }}>
-            <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
-                <FacebookIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-            <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
-                <GitHubIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-            <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
-                <GoogleIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-          </Grid>
+          <MDTypography display="block" variant="button" color="white" my={1}>
+            Sign in with your account or continue with Google
+          </MDTypography>
         </MDBox>
         <MDBox pt={4} pb={3} px={3}>
           <MDBox component="form" role="form" method="POST" onSubmit={submitHandler}>
+            <MDBox mb={2} display="flex" justifyContent="center">
+              <div id="google-signin-login" />
+            </MDBox>
+            {googleError && (
+              <MDBox mb={2}>
+                <MDTypography variant="caption" color="error" fontWeight="light">
+                  {googleError}
+                </MDTypography>
+              </MDBox>
+            )}
             <MDBox mb={2}>
               <MDInput
                 type="email"

@@ -67,20 +67,13 @@ const PasswordReset = () => {
 
     const formData = {
       password: inputs.password,
-      password_confirmation: inputs.password_confirmation,
+      passwordConfirmation: inputs.password_confirmation,
       email: email,
       token: token,
     };
 
-    const myData = {
-      data: {
-        type: "password-reset",
-        attributes: { ...formData },
-      },
-    };
-
     try {
-      const response = await AuthService.resetPassword(myData);
+      await AuthService.resetPassword(formData);
 
       setInputs({
         password: "",
@@ -98,9 +91,7 @@ const PasswordReset = () => {
         setNotification(true);
       }
     } catch (err) {
-      if (err.hasOwnProperty("errors")) {
-        setErrors({ ...errors, error: true, textError: err.errors.password[0] });
-      }
+      setErrors({ ...errors, error: true, textError: err?.message || "Unable to reset password." });
       return null;
     }
   };

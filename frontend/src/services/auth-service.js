@@ -21,9 +21,18 @@ class AuthService {
 
   logout = async () => ({ success: true });
 
-  forgotPassword = async () => ({ success: true, message: "Not yet implemented." });
+  forgotPassword = async (payload) => HttpService.post("/api/auth/forgot-password", payload);
 
-  resetPassword = async () => ({ success: true, message: "Not yet implemented." });
+  resetPassword = async (payload) => HttpService.post("/api/auth/reset-password", payload);
+
+  googleAuth = async (idToken) => {
+    const response = await HttpService.post("/api/auth/google", { idToken });
+    return {
+      access_token: response.token,
+      refresh_token: response.token,
+      user: response.user,
+    };
+  };
 
   getProfile = async () => HttpService.get("/api/auth/me");
 

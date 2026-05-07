@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 // react-router-dom components
 import { Link } from "react-router-dom";
 
@@ -24,6 +24,7 @@ import { InputLabel } from "@mui/material";
 
 function Register() {
   const authContext = useContext(AuthContext);
+  const [googleError, setGoogleError] = useState("");
 
   const [inputs, setInputs] = useState({
     name: "",
@@ -106,6 +107,48 @@ function Register() {
     }
   };
 
+  useEffect(() => {
+    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+
+    const initializeGoogle = () => {
+      if (!window.google?.accounts?.id) return;
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response) => {
+          try {
+            const auth = await AuthService.googleAuth(response.credential);
+            authContext.login(auth.access_token, auth.refresh_token, auth.user);
+          } catch (err) {
+            setGoogleError(err?.message || "Google sign up failed.");
+          }
+        },
+      });
+      const target = document.getElementById("google-signup-register");
+      if (target) {
+        target.innerHTML = "";
+        window.google.accounts.id.renderButton(target, {
+          theme: "outline",
+          size: "large",
+          width: 320,
+          text: "signup_with",
+        });
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      initializeGoogle();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogle;
+    document.body.appendChild(script);
+  }, [authContext]);
+
   return (
     <CoverLayout image={bgImage}>
       <Card>
@@ -129,6 +172,21 @@ function Register() {
         </MDBox>
         <MDBox pt={4} pb={3} px={3}>
           <MDBox component="form" role="form" method="POST" onSubmit={submitHandler}>
+            <MDBox mb={2} display="flex" justifyContent="center">
+              <div id="google-signup-register" />
+            </MDBox>
+            {googleError && (
+              <MDBox mb={2}>
+                <MDTypography variant="caption" color="error" fontWeight="light">
+                  {googleError}
+                </MDTypography>
+              </MDBox>
+            )}
+            <MDBox mb={2}>
+              <MDTypography variant="button" color="text" fontWeight="regular" textAlign="center">
+                or sign up with email
+              </MDTypography>
+            </MDBox>
             <MDBox mb={2}>
               <MDTypography variant="button" color="text" fontWeight="regular">
                 Account type: Farmer
