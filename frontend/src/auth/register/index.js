@@ -115,8 +115,10 @@ function Register() {
 
     const initializeGoogle = () => {
       if (!window.google?.accounts?.id) return;
+      if (window.__zaoGoogleInitialized) return;
       window.google.accounts.id.initialize({
         client_id: clientId,
+        use_fedcm_for_prompt: false,
         callback: async (response) => {
           try {
             const auth = await AuthService.googleAuth(response.credential);
@@ -126,6 +128,7 @@ function Register() {
           }
         },
       });
+      window.__zaoGoogleInitialized = true;
       const target = document.getElementById("google-signup-register");
       if (target) {
         target.innerHTML = "";
@@ -148,7 +151,7 @@ function Register() {
     script.defer = true;
     script.onload = initializeGoogle;
     document.body.appendChild(script);
-  }, [authContext]);
+  }, []);
 
   const handleGoogleClick = () => {
     if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
