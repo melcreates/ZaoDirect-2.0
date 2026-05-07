@@ -23,6 +23,18 @@ const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
 });
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+  redirectUrl: z.string().url().optional(),
+});
+const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  token: z.string().min(12),
+  password: z.string().min(6),
+});
+const googleAuthSchema = z.object({
+  idToken: z.string().min(20),
+});
 
 const updateProfileSchema = z.object({
   name: z.string().min(2).optional(),
@@ -82,6 +94,25 @@ function userResponseRow(row, farmerProfile, assets = []) {
     farmerProfile,
     assets,
   };
+}
+
+async function ensurePasswordResetTable() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await query(
+    `CREATE INDEX IF NOT EXISTS idx_password_reset_user_id ON password_reset_tokens(user_id)`
+  );
+  await query(
+    `CREATE INDEX IF NOT EXISTS idx_password_reset_token_hash ON password_reset_tokens(token_hash)`
+  );
 }
 
 router.post("/signup", async (req, res, next) => {
@@ -172,6 +203,198 @@ router.post("/login", async (req, res, next) => {
       [user.id]
     );
 
+    const assets = await getUserAssets(user.id);
+    const token = signToken(user);
+    return res.json({
+      token,
+      user: userResponseRow(user, profileResult.rows[0] ?? null, assets),
+    });
+  } catch (error) {
+    if (error?.name === "ZodError") {
+      return res.status(400).json({ message: "Invalid request", details: error.errors });
+    }
+    return next(error);
+  }
+});
+
+router.post("/forgot-password", async (req, res, next) => {
+  try {
+    const data = forgotPasswordSchema.parse(req.body);
+    await ensurePasswordResetTable();
+
+    const email = data.email.toLowerCase();
+    const userResult = await query(
+      `SELECT id, email, is_active
+       FROM users
+       WHERE email = $1`,
+      [email]
+    );
+
+    if (userResult.rowCount > 0 && userResult.rows[0].is_active !== false) {
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+      const resetId = crypto.randomUUID();
+
+      await query(
+        `INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at)
+         VALUES ($1, $2, $3, NOW() + INTERVAL '1 hour')`,
+        [resetId, userResult.rows[0].id, tokenHash]
+      );
+
+      const baseUrl = data.redirectUrl || process.env.FRONTEND_URL?.split(",")[0]?.trim() || "";
+      const resetUrl = baseUrl
+        ? `${baseUrl.replace(/\/+$/, "")}/auth/reset-password?token=${encodeURIComponent(rawToken)}&email=${encodeURIComponent(email)}`
+        : null;
+
+      if (resetUrl) {
+        console.log(`Password reset URL for ${email}: ${resetUrl}`);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: "If an account exists, a reset link has been generated.",
+    });
+  } catch (error) {
+    if (error?.name === "ZodError") {
+      return res.status(400).json({ message: "Invalid request", details: error.errors });
+    }
+    return next(error);
+  }
+});
+
+router.post("/reset-password", async (req, res, next) => {
+  try {
+    const data = resetPasswordSchema.parse(req.body);
+    await ensurePasswordResetTable();
+
+    const email = data.email.toLowerCase();
+    const tokenHash = crypto.createHash("sha256").update(data.token).digest("hex");
+
+    const result = await query(
+      `SELECT prt.id AS reset_id, u.id AS user_id
+       FROM password_reset_tokens prt
+       JOIN users u ON u.id = prt.user_id
+       WHERE u.email = $1
+         AND prt.token_hash = $2
+         AND prt.used_at IS NULL
+         AND prt.expires_at > NOW()
+       ORDER BY prt.created_at DESC
+       LIMIT 1`,
+      [email, tokenHash]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(400).json({ message: "Invalid or expired reset token." });
+    }
+
+    const userId = result.rows[0].user_id;
+    const resetId = result.rows[0].reset_id;
+    const passwordHash = await bcrypt.hash(data.password, 10);
+
+    await withTransaction(async (client) => {
+      await client.query(
+        `UPDATE users
+         SET password_hash = $1, updated_at = NOW()
+         WHERE id = $2`,
+        [passwordHash, userId]
+      );
+      await client.query(
+        `UPDATE password_reset_tokens
+         SET used_at = NOW()
+         WHERE id = $1`,
+        [resetId]
+      );
+    });
+
+    return res.json({ success: true, message: "Password updated successfully." });
+  } catch (error) {
+    if (error?.name === "ZodError") {
+      return res.status(400).json({ message: "Invalid request", details: error.errors });
+    }
+    return next(error);
+  }
+});
+
+router.post("/google", async (req, res, next) => {
+  try {
+    const data = googleAuthSchema.parse(req.body);
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+
+    if (!googleClientId) {
+      return res.status(500).json({ message: "Google auth is not configured on the server." });
+    }
+
+    const response = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(data.idToken)}`
+    );
+
+    if (!response.ok) {
+      return res.status(401).json({ message: "Invalid Google token." });
+    }
+
+    const tokenInfo = await response.json();
+    if (tokenInfo.aud !== googleClientId) {
+      return res.status(401).json({ message: "Google token audience mismatch." });
+    }
+    if (tokenInfo.email_verified !== "true") {
+      return res.status(401).json({ message: "Google account email is not verified." });
+    }
+
+    const email = String(tokenInfo.email || "").toLowerCase();
+    if (!email) {
+      return res.status(400).json({ message: "Google account email is missing." });
+    }
+
+    let userResult = await query(
+      `SELECT id, name, email, role, phone, country, profile_photo_url, is_active, verification_status, created_at, updated_at
+       FROM users
+       WHERE email = $1`,
+      [email]
+    );
+
+    if (userResult.rowCount === 0) {
+      const userId = crypto.randomUUID();
+      const randomPasswordHash = await bcrypt.hash(crypto.randomBytes(24).toString("hex"), 10);
+      const displayName = tokenInfo.name || email.split("@")[0];
+
+      const created = await withTransaction(async (client) => {
+        const userInsert = await client.query(
+          `INSERT INTO users (id, name, email, password_hash, role, profile_photo_url, is_active, verification_status)
+           VALUES ($1, $2, $3, $4, 'FARMER', $5, TRUE, 'UNVERIFIED')
+           RETURNING id, name, email, role, phone, country, profile_photo_url, is_active, verification_status, created_at, updated_at`,
+          [userId, displayName, email, randomPasswordHash, tokenInfo.picture || null]
+        );
+
+        const farmerProfileId = crypto.randomUUID();
+        const profileInsert = await client.query(
+          `INSERT INTO farmer_profiles (id, user_id, farm_name, county, has_export_docs, certifications)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id, user_id, farm_name, county, has_export_docs, certifications, created_at, updated_at`,
+          [farmerProfileId, userId, "My Farm", "Unknown", false, null]
+        );
+        return { user: userInsert.rows[0], farmerProfile: profileInsert.rows[0] };
+      });
+
+      const assets = await getUserAssets(created.user.id);
+      const token = signToken(created.user);
+      return res.json({
+        token,
+        user: userResponseRow(created.user, created.farmerProfile, assets),
+      });
+    }
+
+    const user = userResult.rows[0];
+    if (user.is_active === false) {
+      return res.status(403).json({ message: "Account is inactive. Contact admin." });
+    }
+
+    const profileResult = await query(
+      `SELECT id, user_id, farm_name, county, has_export_docs, certifications, created_at, updated_at
+       FROM farmer_profiles
+       WHERE user_id = $1`,
+      [user.id]
+    );
     const assets = await getUserAssets(user.id);
     const token = signToken(user);
     return res.json({
