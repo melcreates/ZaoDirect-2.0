@@ -6,8 +6,6 @@ import { Link } from "react-router-dom";
 // @mui material components
 import Card from "@mui/material/Card";
 import Switch from "@mui/material/Switch";
-import IconButton from "@mui/material/IconButton";
-import GoogleIcon from "@mui/icons-material/Google";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
@@ -87,18 +85,6 @@ function Login() {
     document.body.appendChild(script);
   }, []);
 
-  const handleGoogleClick = () => {
-    if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
-      setGoogleError("Google sign in is not configured.");
-      return;
-    }
-    if (!window.google?.accounts?.id) {
-      setGoogleError("Google sign in is still loading. Please try again.");
-      return;
-    }
-    window.google.accounts.id.prompt();
-  };
-
   const changeHandler = (e) => {
     setInputs({
       ...inputs,
@@ -170,11 +156,8 @@ function Login() {
           <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
             Sign in
           </MDTypography>
-          <MDBox mt={1} mb={1} display="flex" justifyContent="center" alignItems="center" gap={1}>
-            <IconButton size="small" onClick={handleGoogleClick} sx={{ color: "white" }} aria-label="Sign in with Google">
-              <GoogleIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-            <div id="google-signin-login" style={{ display: "none" }} />
+          <MDBox mt={1} mb={1} display="flex" justifyContent="center" alignItems="center">
+            <div id="google-signin-login" />
           </MDBox>
         </MDBox>
         <MDBox pt={4} pb={3} px={3}>

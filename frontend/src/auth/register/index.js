@@ -5,8 +5,6 @@ import { Link } from "react-router-dom";
 // @mui material components
 import Card from "@mui/material/Card";
 import Checkbox from "@mui/material/Checkbox";
-import IconButton from "@mui/material/IconButton";
-import GoogleIcon from "@mui/icons-material/Google";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
@@ -153,18 +151,6 @@ function Register() {
     document.body.appendChild(script);
   }, []);
 
-  const handleGoogleClick = () => {
-    if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
-      setGoogleError("Google sign up is not configured.");
-      return;
-    }
-    if (!window.google?.accounts?.id) {
-      setGoogleError("Google sign up is still loading. Please try again.");
-      return;
-    }
-    window.google.accounts.id.prompt();
-  };
-
   return (
     <CoverLayout image={bgImage}>
       <Card>
@@ -305,11 +291,8 @@ function Register() {
                 or sign up with
               </MDTypography>
             </MDBox>
-            <MDBox mb={2} display="flex" justifyContent="center" alignItems="center" gap={1}>
-              <IconButton size="small" onClick={handleGoogleClick} color="info" aria-label="Sign up with Google">
-                <GoogleIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-              <div id="google-signup-register" style={{ display: "none" }} />
+            <MDBox mb={2} display="flex" justifyContent="center" alignItems="center">
+              <div id="google-signup-register" />
             </MDBox>
             <MDBox mt={3} mb={1} textAlign="center">
               <MDTypography variant="button" color="text">
