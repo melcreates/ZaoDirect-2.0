@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 // @mui material components
 import Card from "@mui/material/Card";
 import Checkbox from "@mui/material/Checkbox";
+import IconButton from "@mui/material/IconButton";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
@@ -17,6 +18,7 @@ import CoverLayout from "layouts/authentication/components/CoverLayout";
 
 // Images
 import bgImage from "assets/images/bg-sign-up-cover.jpeg";
+import googleLogo from "assets/images/small-logos/google-g.svg";
 
 import AuthService from "services/auth-service";
 import { AuthContext } from "context";
@@ -113,28 +115,20 @@ function Register() {
 
     const initializeGoogle = () => {
       if (!window.google?.accounts?.id) return;
-      if (window.__zaoGoogleInitialized) return;
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        use_fedcm_for_prompt: false,
-        callback: async (response) => {
-          try {
-            const auth = await AuthService.googleAuth(response.credential);
-            authContext.login(auth.access_token, auth.refresh_token, auth.user);
-          } catch (err) {
-            setGoogleError(err?.message || "Google sign up failed.");
-          }
-        },
-      });
-      window.__zaoGoogleInitialized = true;
-      const target = document.getElementById("google-signup-register");
-      if (target) {
-        target.innerHTML = "";
-        window.google.accounts.id.renderButton(target, {
-          type: "icon",
-          theme: "outline",
-          size: "large",
+      if (!window.__zaoGoogleInitialized) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          use_fedcm_for_prompt: false,
+          callback: async (response) => {
+            try {
+              const auth = await AuthService.googleAuth(response.credential);
+              authContext.login(auth.access_token, auth.refresh_token, auth.user);
+            } catch (err) {
+              setGoogleError(err?.message || "Google sign up failed.");
+            }
+          },
         });
+        window.__zaoGoogleInitialized = true;
       }
     };
 
@@ -151,16 +145,28 @@ function Register() {
     document.body.appendChild(script);
   }, []);
 
+  const handleGoogleClick = () => {
+    if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+      setGoogleError("Google sign up is not configured.");
+      return;
+    }
+    if (!window.google?.accounts?.id) {
+      setGoogleError("Google sign up is still loading. Please try again.");
+      return;
+    }
+    window.google.accounts.id.prompt();
+  };
+
   return (
     <CoverLayout image={bgImage}>
-      <Card>
+      <Card sx={{ overflow: "visible" }}>
         <MDBox
           variant="gradient"
           bgColor="info"
           borderRadius="lg"
           coloredShadow="success"
           mx={2}
-          mt={-3}
+          mt={-4}
           p={3}
           mb={1}
           textAlign="center"
@@ -292,7 +298,9 @@ function Register() {
               </MDTypography>
             </MDBox>
             <MDBox mb={2} display="flex" justifyContent="center" alignItems="center">
-              <div id="google-signup-register" />
+              <IconButton size="small" onClick={handleGoogleClick} aria-label="google-signup" sx={{ p: 0.5 }}>
+                <MDBox component="img" src={googleLogo} alt="Google" sx={{ width: 20, height: 20 }} />
+              </IconButton>
             </MDBox>
             <MDBox mt={3} mb={1} textAlign="center">
               <MDTypography variant="button" color="text">
@@ -317,3 +325,4 @@ function Register() {
 }
 
 export default Register;
+

@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 // @mui material components
 import Card from "@mui/material/Card";
 import Switch from "@mui/material/Switch";
+import IconButton from "@mui/material/IconButton";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
@@ -18,6 +19,7 @@ import BasicLayoutLanding from "layouts/authentication/components/BasicLayoutLan
 
 // Images
 import bgImage from "assets/images/bg-sign-in-basic.jpeg";
+import googleLogo from "assets/images/small-logos/google-g.svg";
 
 import AuthService from "services/auth-service";
 import { AuthContext } from "context";
@@ -47,28 +49,20 @@ function Login() {
 
     const initializeGoogle = () => {
       if (!window.google?.accounts?.id) return;
-      if (window.__zaoGoogleInitialized) return;
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        use_fedcm_for_prompt: false,
-        callback: async (response) => {
-          try {
-            const auth = await AuthService.googleAuth(response.credential);
-            authContext.login(auth.access_token, auth.refresh_token, auth.user);
-          } catch (err) {
-            setGoogleError(err?.message || "Google sign in failed.");
-          }
-        },
-      });
-      window.__zaoGoogleInitialized = true;
-      const target = document.getElementById("google-signin-login");
-      if (target) {
-        target.innerHTML = "";
-        window.google.accounts.id.renderButton(target, {
-          type: "icon",
-          theme: "outline",
-          size: "large",
+      if (!window.__zaoGoogleInitialized) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          use_fedcm_for_prompt: false,
+          callback: async (response) => {
+            try {
+              const auth = await AuthService.googleAuth(response.credential);
+              authContext.login(auth.access_token, auth.refresh_token, auth.user);
+            } catch (err) {
+              setGoogleError(err?.message || "Google sign in failed.");
+            }
+          },
         });
+        window.__zaoGoogleInitialized = true;
       }
     };
 
@@ -84,6 +78,18 @@ function Login() {
     script.onload = initializeGoogle;
     document.body.appendChild(script);
   }, []);
+
+  const handleGoogleClick = () => {
+    if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+      setGoogleError("Google sign in is not configured.");
+      return;
+    }
+    if (!window.google?.accounts?.id) {
+      setGoogleError("Google sign in is still loading. Please try again.");
+      return;
+    }
+    window.google.accounts.id.prompt();
+  };
 
   const changeHandler = (e) => {
     setInputs({
@@ -141,14 +147,14 @@ function Login() {
 
   return (
     <BasicLayoutLanding image={bgImage}>
-      <Card>
+      <Card sx={{ overflow: "visible" }}>
         <MDBox
           variant="gradient"
           bgColor="info"
           borderRadius="lg"
           coloredShadow="info"
           mx={2}
-          mt={-3}
+          mt={-4}
           p={2}
           mb={1}
           textAlign="center"
@@ -156,9 +162,6 @@ function Login() {
           <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
             Sign in
           </MDTypography>
-          <MDBox mt={1} mb={1} display="flex" justifyContent="center" alignItems="center">
-            <div id="google-signin-login" />
-          </MDBox>
         </MDBox>
         <MDBox pt={4} pb={3} px={3}>
           <MDBox component="form" role="form" method="POST" onSubmit={submitHandler}>
@@ -209,6 +212,16 @@ function Login() {
               <MDButton variant="gradient" color="info" fullWidth type="submit">
                 sign in
               </MDButton>
+            </MDBox>
+            <MDBox mt={2} mb={1} textAlign="center">
+              <MDTypography variant="button" color="text" fontWeight="regular">
+                or sign in with
+              </MDTypography>
+            </MDBox>
+            <MDBox mb={2} display="flex" justifyContent="center" alignItems="center">
+              <IconButton size="small" onClick={handleGoogleClick} aria-label="google-signin" sx={{ p: 0.5 }}>
+                <MDBox component="img" src={googleLogo} alt="Google" sx={{ width: 20, height: 20 }} />
+              </IconButton>
             </MDBox>
             {credentialsErros && (
               <MDTypography variant="caption" color="error" fontWeight="light">
