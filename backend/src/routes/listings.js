@@ -62,7 +62,8 @@ router.get("/", async (req, res, next) => {
         l.created_at,
         l.updated_at,
         u.name AS farmer_name,
-        u.email AS farmer_email
+        u.email AS farmer_email,
+        u.profile_photo_url AS farmer_profile_photo_url
       FROM listings l
       JOIN users u ON u.id = l.farmer_id
       ${whereClause}
@@ -78,7 +79,7 @@ router.get("/", async (req, res, next) => {
 router.get("/:id", requireAuth, requireRole("FARMER", "ADMIN"), async (req, res, next) => {
   try {
     const result = await query(
-      `SELECT l.*, u.name AS farmer_name, u.email AS farmer_email
+      `SELECT l.*, u.name AS farmer_name, u.email AS farmer_email, u.profile_photo_url AS farmer_profile_photo_url
        FROM listings l
        JOIN users u ON u.id = l.farmer_id
        WHERE l.id = $1`,

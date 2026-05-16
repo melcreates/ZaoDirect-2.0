@@ -67,10 +67,20 @@ const updateFarmerPurchaseOrderSchema = z.object({
 
 function canTransitionProcurementStatus(currentStatus, nextStatus) {
   if (!nextStatus || currentStatus === nextStatus) return true;
-  if (currentStatus === "ALLOCATED" && nextStatus === "PICKED_UP") return true;
+
+  // Strict sequence (no skipping):
+  // OPEN -> CONFIRMED -> ALLOCATED -> READY_FOR_PICKUP -> PICKED_UP -> SETTLED
+  if (currentStatus === "OPEN" && nextStatus === "CONFIRMED") return true;
+  if (currentStatus === "CONFIRMED" && nextStatus === "ALLOCATED") return true;
   if (currentStatus === "ALLOCATED" && nextStatus === "READY_FOR_PICKUP") return true;
   if (currentStatus === "READY_FOR_PICKUP" && nextStatus === "PICKED_UP") return true;
   if (currentStatus === "PICKED_UP" && nextStatus === "SETTLED") return true;
+
+  // Rejection is only allowed before collection
+  if (["OPEN", "CONFIRMED", "ALLOCATED", "READY_FOR_PICKUP"].includes(currentStatus) && nextStatus === "REJECTED") {
+    return true;
+  }
+
   return false;
 }
 
@@ -78,8 +88,12 @@ const farmerProcurementStatusSchema = z.enum(["CONFIRMED", "READY_FOR_PICKUP", "
 
 function canTransitionFarmerProcurementStatus(currentStatus, nextStatus) {
   if (!nextStatus || currentStatus === nextStatus) return true;
+
+  // Farmer steps only, in order:
+  // OPEN -> CONFIRMED, then ALLOCATED -> READY_FOR_PICKUP
   if (currentStatus === "OPEN" && (nextStatus === "CONFIRMED" || nextStatus === "REJECTED")) return true;
   if (currentStatus === "ALLOCATED" && nextStatus === "READY_FOR_PICKUP") return true;
+
   return false;
 }
 
@@ -601,6 +615,8 @@ router.get("/farmer-purchase-orders/mine", requireRole("FARMER"), async (req, re
          fpo.*,
          io.buyer_name,
          io.crop_type AS int_crop_type,
+         cb.name AS coordinator_name,
+         cb.profile_photo_url AS coordinator_profile_photo_url,
          COALESCE(
            (
              SELECT SUM(COALESCE(bi.accepted_quantity, 0))
@@ -814,6 +830,7 @@ router.get("/farmer-purchase-orders/mine", requireRole("FARMER"), async (req, re
          END AS shipment_progress
        FROM farmer_purchase_orders fpo
        JOIN international_orders io ON io.id = fpo.international_order_id
+       LEFT JOIN users cb ON cb.id = fpo.created_by
        WHERE fpo.farmer_id = $1
        ORDER BY fpo.created_at DESC`,
       [req.user.sub]
@@ -878,7 +895,7 @@ router.patch("/farmer-purchase-orders/:id/farmer-status", requireRole("FARMER"),
     }
     if (!canTransitionFarmerProcurementStatus(current.status, status)) {
       return res.status(400).json({
-        message: `Invalid status transition from ${current.status} to ${status}. Follow Open -> Confirmed -> Ready for pickup`,
+        message: `Invalid status transition from ${current.status} to ${status}. Follow Open -> Confirmed -> Allocated -> Ready for pickup -> Picked up -> Settled`,
       });
     }
 
@@ -2309,3 +2326,4 @@ router.patch("/dispute-cases/:id", requireRole("ADMIN"), async (req, res, next) 
 });
 
 export default router;
+

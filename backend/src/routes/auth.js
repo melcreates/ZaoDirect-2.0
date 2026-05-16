@@ -35,18 +35,38 @@ const resetPasswordSchema = z.object({
 const googleAuthSchema = z.object({
   idToken: z.string().min(20),
 });
-
-const updateProfileSchema = z.object({
-  name: z.string().min(2).optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  country: z.string().optional(),
-  password: z.string().min(6).optional(),
-  farmName: z.string().optional(),
-  county: z.string().optional(),
-  hasExportDocs: z.boolean().optional(),
-  certifications: z.string().optional(),
+const notificationsSchema = z.object({
+  mentionsEmail: z.boolean().optional(),
+  mentionsPush: z.boolean().optional(),
+  mentionsSms: z.boolean().optional(),
+  commentsEmail: z.boolean().optional(),
+  commentsPush: z.boolean().optional(),
+  commentsSms: z.boolean().optional(),
+  followsEmail: z.boolean().optional(),
+  followsPush: z.boolean().optional(),
+  followsSms: z.boolean().optional(),
+  loginNewDeviceEmail: z.boolean().optional(),
+  loginNewDevicePush: z.boolean().optional(),
+  loginNewDeviceSms: z.boolean().optional(),
 });
+
+const updateProfileSchema = z
+  .object({
+    name: z.string().min(2).optional(),
+    email: z.string().email().optional(),
+    phone: z.string().optional(),
+    country: z.string().optional(),
+    password: z.string().min(6).optional(),
+    currentPassword: z.string().min(6).optional(),
+    farmName: z.string().optional(),
+    county: z.string().optional(),
+    hasExportDocs: z.boolean().optional(),
+    certifications: z.string().optional(),
+  })
+  .refine((payload) => !payload.password || !!payload.currentPassword, {
+    message: "Current password is required to set a new password",
+    path: ["currentPassword"],
+  });
 
 const updateAvatarSchema = z.object({
   imageUrl: z.string().min(1),
@@ -115,6 +135,99 @@ async function ensurePasswordResetTable() {
   );
 }
 
+async function ensureSettingsTables() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS user_notification_settings (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      mentions_email BOOLEAN NOT NULL DEFAULT TRUE,
+      mentions_push BOOLEAN NOT NULL DEFAULT FALSE,
+      mentions_sms BOOLEAN NOT NULL DEFAULT FALSE,
+      comments_email BOOLEAN NOT NULL DEFAULT TRUE,
+      comments_push BOOLEAN NOT NULL DEFAULT TRUE,
+      comments_sms BOOLEAN NOT NULL DEFAULT FALSE,
+      follows_email BOOLEAN NOT NULL DEFAULT FALSE,
+      follows_push BOOLEAN NOT NULL DEFAULT TRUE,
+      follows_sms BOOLEAN NOT NULL DEFAULT FALSE,
+      login_new_device_email BOOLEAN NOT NULL DEFAULT TRUE,
+      login_new_device_push BOOLEAN NOT NULL DEFAULT TRUE,
+      login_new_device_sms BOOLEAN NOT NULL DEFAULT FALSE,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_agent TEXT,
+      ip_address TEXT,
+      is_current BOOLEAN NOT NULL DEFAULT TRUE,
+      revoked_at TIMESTAMPTZ NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`);
+}
+
+async function ensureNotificationSettingsRow(userId) {
+  await ensureSettingsTables();
+  await query(
+    `INSERT INTO user_notification_settings (user_id)
+     VALUES ($1)
+     ON CONFLICT (user_id) DO NOTHING`,
+    [userId]
+  );
+}
+
+async function getNotificationSettings(userId) {
+  await ensureNotificationSettingsRow(userId);
+  const result = await query(
+    `SELECT mentions_email, mentions_push, mentions_sms,
+            comments_email, comments_push, comments_sms,
+            follows_email, follows_push, follows_sms,
+            login_new_device_email, login_new_device_push, login_new_device_sms
+     FROM user_notification_settings
+     WHERE user_id = $1`,
+    [userId]
+  );
+
+  const row = result.rows[0] || {};
+  return {
+    mentionsEmail: row.mentions_email ?? true,
+    mentionsPush: row.mentions_push ?? false,
+    mentionsSms: row.mentions_sms ?? false,
+    commentsEmail: row.comments_email ?? true,
+    commentsPush: row.comments_push ?? true,
+    commentsSms: row.comments_sms ?? false,
+    followsEmail: row.follows_email ?? false,
+    followsPush: row.follows_push ?? true,
+    followsSms: row.follows_sms ?? false,
+    loginNewDeviceEmail: row.login_new_device_email ?? true,
+    loginNewDevicePush: row.login_new_device_push ?? true,
+    loginNewDeviceSms: row.login_new_device_sms ?? false,
+  };
+}
+
+function getClientIp(req) {
+  const xf = req.headers["x-forwarded-for"];
+  if (typeof xf === "string" && xf.trim()) {
+    return xf.split(",")[0].trim();
+  }
+  return req.ip || null;
+}
+
+async function createUserSession(req, userId) {
+  await ensureSettingsTables();
+  await query(`UPDATE user_sessions SET is_current = FALSE WHERE user_id = $1 AND revoked_at IS NULL`, [userId]);
+
+  await query(
+    `INSERT INTO user_sessions (id, user_id, user_agent, ip_address, is_current, last_active_at)
+     VALUES ($1, $2, $3, $4, TRUE, NOW())`,
+    [crypto.randomUUID(), userId, req.headers["user-agent"] || null, getClientIp(req)]
+  );
+}
+
 router.post("/signup", async (req, res, next) => {
   try {
     const data = signupSchema.parse(req.body);
@@ -159,6 +272,8 @@ router.post("/signup", async (req, res, next) => {
     });
 
     const token = signToken(created.user);
+    await ensureNotificationSettingsRow(created.user.id);
+    await createUserSession(req, created.user.id);
     return res.status(201).json({
       token,
       user: userResponseRow(created.user, created.farmerProfile, []),
@@ -205,6 +320,8 @@ router.post("/login", async (req, res, next) => {
 
     const assets = await getUserAssets(user.id);
     const token = signToken(user);
+    await ensureNotificationSettingsRow(user.id);
+    await createUserSession(req, user.id);
     return res.json({
       token,
       user: userResponseRow(user, profileResult.rows[0] ?? null, assets),
@@ -378,6 +495,8 @@ router.post("/google", async (req, res, next) => {
 
       const assets = await getUserAssets(created.user.id);
       const token = signToken(created.user);
+      await ensureNotificationSettingsRow(created.user.id);
+      await createUserSession(req, created.user.id);
       return res.json({
         token,
         user: userResponseRow(created.user, created.farmerProfile, assets),
@@ -397,6 +516,8 @@ router.post("/google", async (req, res, next) => {
     );
     const assets = await getUserAssets(user.id);
     const token = signToken(user);
+    await ensureNotificationSettingsRow(user.id);
+    await createUserSession(req, user.id);
     return res.json({
       token,
       user: userResponseRow(user, profileResult.rows[0] ?? null, assets),
@@ -470,7 +591,17 @@ router.patch("/me", requireAuth, async (req, res, next) => {
       }
     }
 
-    const passwordHash = data.password ? await bcrypt.hash(data.password, 10) : null;
+    let passwordHash = null;
+    if (data.password) {
+      const currentMatches = await bcrypt.compare(
+        data.currentPassword || "",
+        existing.rows[0].password_hash || ""
+      );
+      if (!currentMatches) {
+        return res.status(400).json({ message: "Current password is incorrect." });
+      }
+      passwordHash = await bcrypt.hash(data.password, 10);
+    }
     await query(
       `UPDATE users
        SET name = COALESCE($1, name),
@@ -618,6 +749,159 @@ router.delete("/me/assets/:assetId", requireAuth, async (req, res, next) => {
     }
 
     return res.json({ success: true });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/me/settings", requireAuth, async (req, res, next) => {
+  try {
+    const notifications = await getNotificationSettings(req.user.sub);
+    return res.json({ notifications });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.patch("/me/settings/notifications", requireAuth, async (req, res, next) => {
+  try {
+    const data = notificationsSchema.parse(req.body);
+    await ensureNotificationSettingsRow(req.user.sub);
+    await query(
+      `UPDATE user_notification_settings
+       SET mentions_email = COALESCE($1, mentions_email),
+           mentions_push = COALESCE($2, mentions_push),
+           mentions_sms = COALESCE($3, mentions_sms),
+           comments_email = COALESCE($4, comments_email),
+           comments_push = COALESCE($5, comments_push),
+           comments_sms = COALESCE($6, comments_sms),
+           follows_email = COALESCE($7, follows_email),
+           follows_push = COALESCE($8, follows_push),
+           follows_sms = COALESCE($9, follows_sms),
+           login_new_device_email = COALESCE($10, login_new_device_email),
+           login_new_device_push = COALESCE($11, login_new_device_push),
+           login_new_device_sms = COALESCE($12, login_new_device_sms),
+           updated_at = NOW()
+       WHERE user_id = $13`,
+      [
+        data.mentionsEmail ?? null,
+        data.mentionsPush ?? null,
+        data.mentionsSms ?? null,
+        data.commentsEmail ?? null,
+        data.commentsPush ?? null,
+        data.commentsSms ?? null,
+        data.followsEmail ?? null,
+        data.followsPush ?? null,
+        data.followsSms ?? null,
+        data.loginNewDeviceEmail ?? null,
+        data.loginNewDevicePush ?? null,
+        data.loginNewDeviceSms ?? null,
+        req.user.sub,
+      ]
+    );
+
+    const notifications = await getNotificationSettings(req.user.sub);
+    return res.json({ notifications });
+  } catch (error) {
+    if (error?.name === "ZodError") {
+      return res.status(400).json({ message: "Invalid notification settings", details: error.errors });
+    }
+    return next(error);
+  }
+});
+
+router.get("/me/sessions", requireAuth, async (req, res, next) => {
+  try {
+    await ensureSettingsTables();
+    let result = await query(
+      `SELECT id, user_agent, ip_address, is_current, created_at, last_active_at
+       FROM user_sessions
+       WHERE user_id = $1 AND revoked_at IS NULL
+       ORDER BY is_current DESC, last_active_at DESC`,
+      [req.user.sub]
+    );
+
+    // Backfill for accounts that existed before session tracking was introduced.
+    if (result.rowCount === 0) {
+      await createUserSession(req, req.user.sub);
+      result = await query(
+        `SELECT id, user_agent, ip_address, is_current, created_at, last_active_at
+         FROM user_sessions
+         WHERE user_id = $1 AND revoked_at IS NULL
+         ORDER BY is_current DESC, last_active_at DESC`,
+        [req.user.sub]
+      );
+    }
+
+    return res.json(result.rows);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.delete("/me/sessions/:sessionId", requireAuth, async (req, res, next) => {
+  try {
+    await ensureSettingsTables();
+    const existing = await query(
+      `SELECT id, is_current
+       FROM user_sessions
+       WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL`,
+      [req.params.sessionId, req.user.sub]
+    );
+    if (existing.rowCount === 0) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+    if (existing.rows[0].is_current) {
+      return res.status(400).json({ message: "You cannot remove your current session." });
+    }
+
+    await query(
+      `UPDATE user_sessions
+       SET revoked_at = NOW(), is_current = FALSE
+       WHERE id = $1 AND user_id = $2`,
+      [req.params.sessionId, req.user.sub]
+    );
+
+    return res.json({ success: true });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/me/deactivate", requireAuth, async (req, res, next) => {
+  try {
+    if (req.user.role === "ADMIN") {
+      return res.status(400).json({ message: "Admin accounts cannot self-deactivate here." });
+    }
+
+    await query(
+      `UPDATE users
+       SET is_active = FALSE, updated_at = NOW()
+       WHERE id = $1`,
+      [req.user.sub]
+    );
+
+    await query(
+      `UPDATE user_sessions
+       SET revoked_at = NOW(), is_current = FALSE
+       WHERE user_id = $1 AND revoked_at IS NULL`,
+      [req.user.sub]
+    );
+
+    return res.json({ success: true, message: "Account deactivated." });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.delete("/me", requireAuth, async (req, res, next) => {
+  try {
+    if (req.user.role === "ADMIN") {
+      return res.status(400).json({ message: "Admin accounts cannot be deleted here." });
+    }
+
+    await query(`DELETE FROM users WHERE id = $1`, [req.user.sub]);
+    return res.json({ success: true, message: "Account deleted." });
   } catch (error) {
     return next(error);
   }
