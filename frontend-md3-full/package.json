@@ -53,7 +53,7 @@
                      },
     "scripts":  {
                     "start":  "cross-env DISABLE_ESLINT_PLUGIN=true GENERATE_SOURCEMAP=false react-scripts start",
-                    "build":  "cross-env GENERATE_SOURCEMAP=false react-scripts build",
+                    "build":  "cross-env CI=false DISABLE_ESLINT_PLUGIN=true GENERATE_SOURCEMAP=false react-scripts build",
                     "test":  "react-scripts test",
                     "eject":  "react-scripts eject",
                     "install:clean":  "rmdir /s /q node_modules \u0026\u0026 del /f /q package-lock.json \u0026\u0026 npm install \u0026\u0026 npm start",
