@@ -148,6 +148,10 @@ export default function App() {
   }, [pathname]);
 
   useEffect(() => {
+    if (!isAuthenticated && !pathname.startsWith("/authentication/")) {
+      window.location.replace("/authentication/sign-in/basic");
+      return;
+    }
     setUserRouteProfile(readUserProfile());
   }, [pathname, isAuthenticated]);
 
