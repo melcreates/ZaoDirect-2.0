@@ -104,8 +104,7 @@ function Settings() {
     setPasswordForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveBasic = async (event) => {
-    event.preventDefault();
+  const handleSaveBasic = async () => {
     try {
       setSavingBasic(true);
       setError("");
@@ -113,7 +112,6 @@ function Settings() {
 
       const payload = {
         name: basicForm.name?.trim(),
-        email: basicForm.email?.trim(),
         phone: basicForm.phone?.trim(),
         country: basicForm.country?.trim(),
       };
@@ -129,8 +127,7 @@ function Settings() {
     }
   };
 
-  const handleSavePassword = async (event) => {
-    event.preventDefault();
+  const handleSavePassword = async () => {
     const { currentPassword, newPassword, confirmPassword } = passwordForm;
 
     if (!currentPassword || !newPassword || !confirmPassword) {

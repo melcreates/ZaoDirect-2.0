@@ -19,7 +19,7 @@ function ChangePassword({ form, onChange, onSubmit, saving = false }) {
       <MDBox p={3}>
         <MDTypography variant="h5">Change Password</MDTypography>
       </MDBox>
-      <MDBox component="form" pb={3} px={3} onSubmit={onSubmit}>
+      <MDBox pb={3} px={3}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <MDInput
@@ -71,7 +71,7 @@ function ChangePassword({ form, onChange, onSubmit, saving = false }) {
             ))}
           </MDBox>
           <MDBox ml="auto">
-            <MDButton type="submit" variant="gradient" color="dark" size="small" disabled={saving}>
+            <MDButton type="button" variant="gradient" color="dark" size="small" disabled={saving} onClick={onSubmit}>
               {saving ? "Updating..." : "Update password"}
             </MDButton>
           </MDBox>

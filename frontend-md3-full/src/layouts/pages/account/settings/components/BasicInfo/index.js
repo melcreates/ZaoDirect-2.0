@@ -12,7 +12,7 @@ function BasicInfo({ form, onChange, onSave, saving = false }) {
       <MDBox p={3}>
         <MDTypography variant="h5">Basic Info</MDTypography>
       </MDBox>
-      <MDBox component="form" pb={3} px={3} onSubmit={onSave}>
+      <MDBox pb={3} px={3}>
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
             <FormField
@@ -27,10 +27,8 @@ function BasicInfo({ form, onChange, onSave, saving = false }) {
             <FormField
               label="Email"
               name="email"
-              placeholder="example@email.com"
-              inputProps={{ type: "email" }}
               value={form.email}
-              onChange={onChange}
+              inputProps={{ type: "email", readOnly: true }}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -53,7 +51,7 @@ function BasicInfo({ form, onChange, onSave, saving = false }) {
           </Grid>
         </Grid>
         <MDBox mt={4} display="flex" justifyContent="flex-end">
-          <MDButton type="submit" variant="gradient" color="info" disabled={saving}>
+          <MDButton type="button" variant="gradient" color="info" disabled={saving} onClick={onSave}>
             {saving ? "Saving..." : "Save changes"}
           </MDButton>
         </MDBox>

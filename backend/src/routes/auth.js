@@ -32,6 +32,17 @@ const resetPasswordSchema = z.object({
   token: z.string().min(12),
   password: z.string().min(6),
 });
+const changePasswordWithEmailSchema = z
+  .object({
+    email: z.string().email(),
+    currentPassword: z.string().min(6),
+    newPassword: z.string().min(6),
+    confirmPassword: z.string().min(6),
+  })
+  .refine((payload) => payload.newPassword === payload.confirmPassword, {
+    message: "New password and confirmation do not match",
+    path: ["confirmPassword"],
+  });
 const googleAuthSchema = z.object({
   idToken: z.string().min(20),
 });
@@ -430,6 +441,47 @@ router.post("/reset-password", async (req, res, next) => {
       return res.status(400).json({ message: "Invalid request", details: error.errors });
     }
     return next(error);
+  }
+});
+
+router.post("/change-password-with-email", async (req, res, next) => {
+  try {
+    const data = changePasswordWithEmailSchema.parse(req.body);
+    const email = data.email.toLowerCase();
+
+    const userResult = await query(
+      `SELECT id, password_hash, is_active
+       FROM users
+       WHERE email = $1`,
+      [email]
+    );
+
+    if (!userResult.rowCount) {
+      return res.status(404).json({ message: "Account not found for this email" });
+    }
+
+    const user = userResult.rows[0];
+    if (user.is_active === false) {
+      return res.status(403).json({ message: "Account is deactivated" });
+    }
+
+    const isValidCurrent = await bcrypt.compare(data.currentPassword, user.password_hash || "");
+    if (!isValidCurrent) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    const newPasswordHash = await bcrypt.hash(data.newPassword, 10);
+    await query(`UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`, [
+      newPasswordHash,
+      user.id,
+    ]);
+
+    res.json({ message: "Password changed successfully. You can now sign in." });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: error.issues[0]?.message || "Invalid request payload" });
+    }
+    next(error);
   }
 });
 

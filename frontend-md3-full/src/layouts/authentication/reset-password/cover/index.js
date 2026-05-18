@@ -1,64 +1,80 @@
-/**
-=========================================================
-* Material Dashboard 3 PRO React - v2.4.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-pro-react
-* Copyright 2024 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-
-// @mui material components
-import Card from "@mui/material/Card";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
-// Material Dashboard 3 PRO React components
+import Card from "@mui/material/Card";
+
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
 import MDButton from "components/MDButton";
 import MDAlert from "components/MDAlert";
 
-// Authentication layout components
 import CoverLayout from "layouts/authentication/components/CoverLayout";
 import AuthService from "services/auth-service";
 
-// Images
 import bgImage from "assets/images/bg-reset-cover.jpeg";
 
 function Cover() {
-  const [email, setEmail] = useState("");
+  const [form, setForm] = useState({
+    email: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const handleChange = ({ target: { name, value } }) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    setLoading(true);
 
+    const email = form.email.trim();
+    if (!email) {
+      setError("Please enter your email.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      await AuthService.forgotPassword({ email: email.trim() });
-      setSuccess("Password reset instructions sent. Please check your email.");
+      if (!form.currentPassword || !form.newPassword || !form.confirmPassword) {
+        setError("Please fill all fields.");
+        setLoading(false);
+        return;
+      }
+      if (form.newPassword !== form.confirmPassword) {
+        setError("New password and confirmation do not match.");
+        setLoading(false);
+        return;
+      }
+
+      await AuthService.changePasswordWithEmail({
+        email,
+        currentPassword: form.currentPassword,
+        newPassword: form.newPassword,
+        confirmPassword: form.confirmPassword,
+      });
+
+      setSuccess("Password changed successfully. You can now sign in.");
+      setForm({ email, currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (err) {
-      setError(err?.message || "Unable to request password reset.");
+      setError(err?.message || "Unable to change password.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <CoverLayout coverHeight="50vh" image={bgImage}>
+    <CoverLayout coverHeight="50vh" image={bgImage} showNavbar={false} showFooter={false}>
       <Card>
-        <MDBox
-          variant="gradient"
-          bgColor="info"
+          <MDBox
+            variant="gradient"
+            bgColor="info"
           borderRadius="lg"
           mx={2}
           mt={2}
@@ -67,10 +83,10 @@ function Cover() {
           textAlign="center"
         >
           <MDTypography variant="h3" fontWeight="medium" color="white" mt={1}>
-            Reset Password
+            Forgot Password
           </MDTypography>
           <MDTypography display="block" variant="button" color="white" my={1}>
-            You will receive an e-mail in maximum 60 seconds
+            Verify your current password, then set a new one
           </MDTypography>
         </MDBox>
         <MDBox pt={4} pb={3} px={3}>
@@ -89,21 +105,74 @@ function Cover() {
             </MDAlert>
           )}
           <MDBox component="form" role="form" onSubmit={handleSubmit}>
-            <MDBox mb={4}>
+            <MDBox mb={3}>
               <MDInput
+                name="email"
                 type="email"
                 autoComplete="email"
                 label="Email"
                 variant="standard"
                 fullWidth
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={form.email}
+                onChange={handleChange}
               />
             </MDBox>
-            <MDBox mt={6} mb={1}>
+            <MDBox mb={3}>
+              <MDInput
+                name="currentPassword"
+                type="password"
+                autoComplete="current-password"
+                label="Current Password"
+                variant="standard"
+                fullWidth
+                value={form.currentPassword}
+                onChange={handleChange}
+              />
+            </MDBox>
+            <MDBox mb={3}>
+              <MDInput
+                name="newPassword"
+                type="password"
+                autoComplete="new-password"
+                label="New Password"
+                variant="standard"
+                fullWidth
+                value={form.newPassword}
+                onChange={handleChange}
+              />
+            </MDBox>
+            <MDBox mb={2}>
+              <MDInput
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                label="Confirm New Password"
+                variant="standard"
+                fullWidth
+                value={form.confirmPassword}
+                onChange={handleChange}
+              />
+            </MDBox>
+
+            <MDBox mt={4} mb={1}>
               <MDButton type="submit" variant="gradient" color="info" fullWidth disabled={loading}>
-                {loading ? "Sending..." : "Reset"}
+                {loading ? "Processing..." : "Change Password"}
               </MDButton>
+            </MDBox>
+            <MDBox mt={2} textAlign="center">
+              <MDTypography variant="button" color="text">
+                Back to{" "}
+                <MDTypography
+                  component={Link}
+                  to="/authentication/sign-in/basic"
+                  variant="button"
+                  color="info"
+                  fontWeight="medium"
+                  textGradient
+                >
+                  Sign in
+                </MDTypography>
+              </MDTypography>
             </MDBox>
           </MDBox>
         </MDBox>
