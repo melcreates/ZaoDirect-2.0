@@ -44,6 +44,7 @@ function Settings() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [revokingId, setRevokingId] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -165,6 +166,31 @@ function Settings() {
     }
   };
 
+  const handleChangePhoto = async (file) => {
+    try {
+      setUploadingPhoto(true);
+      setError("");
+      setSuccess("");
+
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Failed to read image file."));
+        reader.readAsDataURL(file);
+      });
+
+      const updated = await AuthService.updateAvatar(dataUrl);
+      const nextProfile = { ...profile, ...updated };
+      setProfile(nextProfile);
+      localStorage.setItem("user", JSON.stringify(nextProfile));
+      setSuccess("Profile photo updated successfully.");
+    } catch (err) {
+      setError(err?.message || "Unable to update profile photo.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleRevokeSession = async (sessionId) => {
     try {
       setRevokingId(sessionId);
@@ -226,7 +252,13 @@ function Settings() {
             <MDBox mb={3}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <Header name={headerName} role={headerRole} profilePhotoUrl={headerPhoto} />
+                  <Header
+                    name={headerName}
+                    role={headerRole}
+                    profilePhotoUrl={headerPhoto}
+                    onChangePhoto={handleChangePhoto}
+                    uploadingPhoto={uploadingPhoto}
+                  />
                 </Grid>
                 <Grid item xs={12}>
                   {error && (

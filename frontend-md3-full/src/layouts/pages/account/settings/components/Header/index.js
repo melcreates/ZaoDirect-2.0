@@ -13,23 +13,32 @@ Coded by www.creative-tim.com
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
 
-import { useState } from "react";
+import { useRef } from "react";
 import PropTypes from "prop-types";
 
 // @mui material components
 import Card from "@mui/material/Card";
 import Grid from "@mui/material/Grid";
-import Switch from "@mui/material/Switch";
 
 // Material Dashboard 3 PRO React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDAvatar from "components/MDAvatar";
+import MDButton from "components/MDButton";
 
-function Header({ name = "My Account", role = "", profilePhotoUrl = "" }) {
-  const [visible, setVisible] = useState(true);
+function Header({ name = "My Account", role = "", profilePhotoUrl = "", onChangePhoto, uploadingPhoto = false }) {
+  const fileInputRef = useRef(null);
 
-  const handleSetVisible = () => setVisible(!visible);
+  const triggerPick = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target?.files?.[0];
+    if (!file || typeof onChangePhoto !== "function") return;
+    onChangePhoto(file);
+    event.target.value = "";
+  };
 
   return (
     <Card id="profile">
@@ -57,12 +66,29 @@ function Header({ name = "My Account", role = "", profilePhotoUrl = "" }) {
               alignItems="center"
               lineHeight={1}
             >
-              <MDTypography variant="caption" fontWeight="regular">
-                Switch to {visible ? "invisible" : "visible"}
-              </MDTypography>
-              <MDBox ml={1}>
-                <Switch checked={visible} onChange={handleSetVisible} />
-              </MDBox>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+              <MDButton
+                variant="gradient"
+                color="dark"
+                size="small"
+                onClick={triggerPick}
+                disabled={uploadingPhoto}
+                sx={{
+                  textTransform: "none",
+                  px: 2.5,
+                  py: 1.1,
+                  minWidth: 170,
+                  fontWeight: 700,
+                }}
+              >
+                {uploadingPhoto ? "Uploading..." : "Change Profile Photo"}
+              </MDButton>
             </MDBox>
           </Grid>
         </Grid>
@@ -75,6 +101,8 @@ Header.propTypes = {
   name: PropTypes.string,
   role: PropTypes.string,
   profilePhotoUrl: PropTypes.string,
+  onChangePhoto: PropTypes.func,
+  uploadingPhoto: PropTypes.bool,
 };
 
 export default Header;

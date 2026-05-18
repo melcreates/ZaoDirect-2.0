@@ -16,7 +16,7 @@ Coded by www.creative-tim.com
 import { useState, useEffect } from "react";
 
 // react-router components
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 // prop-types is a library for typechecking of props.
 import PropTypes from "prop-types";
@@ -26,6 +26,9 @@ import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
 import Icon from "@mui/material/Icon";
 
 // Material Dashboard 3 PRO React components
@@ -52,7 +55,6 @@ import {
   useMaterialUIController,
   setTransparentNavbar,
   setMiniSidenav,
-  setOpenConfigurator,
 } from "context";
 
 function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
@@ -62,10 +64,12 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
     miniSidenav,
     transparentNavbar,
     fixedNavbar,
-    openConfigurator,
     darkMode,
   } = controller;
-  const [openMenu, setOpenMenu] = useState(false);
+  const navigate = useNavigate();
+  const [openNotificationsMenu, setOpenNotificationsMenu] = useState(false);
+  const [profileAnchor, setProfileAnchor] = useState(null);
+  const [settingsAnchor, setSettingsAnchor] = useState(null);
   const route = useLocation().pathname.split("/").slice(1);
 
   useEffect(() => {
@@ -98,22 +102,28 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
   }, [dispatch, fixedNavbar]);
 
   const handleMiniSidenav = () => setMiniSidenav(dispatch, !miniSidenav);
-  const handleConfiguratorOpen = () =>
-    setOpenConfigurator(dispatch, !openConfigurator);
-  const handleOpenMenu = (event) => setOpenMenu(event.currentTarget);
-  const handleCloseMenu = () => setOpenMenu(false);
+  const handleOpenNotificationsMenu = (event) => setOpenNotificationsMenu(event.currentTarget);
+  const handleCloseNotificationsMenu = () => setOpenNotificationsMenu(false);
+  const handleOpenProfileMenu = (event) => setProfileAnchor(event.currentTarget);
+  const handleCloseProfileMenu = () => setProfileAnchor(null);
+  const handleOpenSettingsMenu = (event) => setSettingsAnchor(event.currentTarget);
+  const handleCloseSettingsMenu = () => setSettingsAnchor(null);
+
+  const goTo = (path) => {
+    navigate(path);
+  };
 
   // Render the notifications menu
-  const renderMenu = () => (
+  const renderNotificationsMenu = () => (
     <Menu
-      anchorEl={openMenu}
+      anchorEl={openNotificationsMenu}
       anchorReference={null}
       anchorOrigin={{
         vertical: "bottom",
         horizontal: "left",
       }}
-      open={Boolean(openMenu)}
-      onClose={handleCloseMenu}
+      open={Boolean(openNotificationsMenu)}
+      onClose={handleCloseNotificationsMenu}
       sx={{ mt: 2 }}
     >
       <NotificationItem icon={<Icon>email</Icon>} title="Check new messages" />
@@ -125,6 +135,103 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
         icon={<Icon>shopping_cart</Icon>}
         title="Payment successfully completed"
       />
+    </Menu>
+  );
+
+  const renderProfileMenu = () => (
+    <Menu
+      anchorEl={profileAnchor}
+      open={Boolean(profileAnchor)}
+      onClose={handleCloseProfileMenu}
+      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      transformOrigin={{ vertical: "top", horizontal: "right" }}
+      sx={{ mt: 1 }}
+      PaperProps={{
+        sx: {
+          minWidth: 170,
+          borderRadius: 1.25,
+          boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+          py: 0.25,
+        },
+      }}
+    >
+      <MenuItem
+        sx={{ py: 0.75, px: 1.25, minHeight: 34 }}
+        onClick={() => {
+          handleCloseProfileMenu();
+          goTo("/pages/profile/profile-overview");
+        }}
+      >
+        <ListItemIcon sx={{ minWidth: 28, color: "#344767" }}>
+          <Icon sx={{ fontSize: "1rem" }}>person</Icon>
+        </ListItemIcon>
+        <ListItemText
+          primary="My Profile"
+          primaryTypographyProps={{
+            fontSize: "0.875rem",
+            fontWeight: 400,
+            color: "#344767",
+          }}
+        />
+      </MenuItem>
+      <MenuItem
+        sx={{ py: 0.75, px: 1.25, minHeight: 34 }}
+        onClick={() => {
+          handleCloseProfileMenu();
+          goTo("/authentication/logout");
+        }}
+      >
+        <ListItemIcon sx={{ minWidth: 28, color: "#344767" }}>
+          <Icon sx={{ fontSize: "1rem" }}>logout</Icon>
+        </ListItemIcon>
+        <ListItemText
+          primary="Logout"
+          primaryTypographyProps={{
+            fontSize: "0.875rem",
+            fontWeight: 400,
+            color: "#344767",
+          }}
+        />
+      </MenuItem>
+    </Menu>
+  );
+
+  const renderSettingsMenu = () => (
+    <Menu
+      anchorEl={settingsAnchor}
+      open={Boolean(settingsAnchor)}
+      onClose={handleCloseSettingsMenu}
+      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      transformOrigin={{ vertical: "top", horizontal: "right" }}
+      sx={{ mt: 1 }}
+      PaperProps={{
+        sx: {
+          minWidth: 170,
+          borderRadius: 1.25,
+          boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+          py: 0.25,
+        },
+      }}
+    >
+      <MenuItem
+        sx={{ py: 0.75, px: 1.25, minHeight: 34 }}
+        onClick={() => {
+          handleCloseSettingsMenu();
+          goTo("/pages/account/settings");
+        }}
+      >
+        <ListItemIcon sx={{ minWidth: 28, color: "#344767" }}>
+          <Icon sx={{ fontSize: "1rem" }}>settings</Icon>
+        </ListItemIcon>
+        <ListItemText
+          primary="Settings"
+          primaryTypographyProps={{
+            fontSize: "0.875rem",
+            fontWeight: 400,
+            color: "#344767",
+          }}
+        />
+      </MenuItem>
     </Menu>
   );
 
@@ -143,6 +250,10 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
       return colorValue;
     },
   });
+
+  const persistentTopIconSx = {
+    color: "#344767 !important",
+  };
 
   return (
     <AppBar
@@ -177,11 +288,9 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
               <MDInput label="Search here" />
             </MDBox>
             <MDBox color={light ? "white" : "inherit"}>
-              <Link to="/authentication/sign-in/basic">
-                <IconButton sx={navbarIconButton} size="small" disableRipple>
-                  <Icon sx={iconsStyle}>account_circle</Icon>
-                </IconButton>
-              </Link>
+              <IconButton sx={navbarIconButton} size="small" disableRipple onClick={handleOpenProfileMenu}>
+                <Icon sx={[iconsStyle, persistentTopIconSx]}>account_circle</Icon>
+              </IconButton>
               <IconButton
                 size="small"
                 disableRipple
@@ -189,7 +298,7 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
                 sx={navbarMobileMenu}
                 onClick={handleMiniSidenav}
               >
-                <Icon sx={iconsStyle} fontSize="medium">
+                <Icon sx={[iconsStyle, persistentTopIconSx]} fontSize="medium">
                   {miniSidenav ? "menu_open" : "menu"}
                 </Icon>
               </IconButton>
@@ -198,9 +307,9 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
                 disableRipple
                 color="inherit"
                 sx={navbarIconButton}
-                onClick={handleConfiguratorOpen}
+                onClick={handleOpenSettingsMenu}
               >
-                <Icon sx={iconsStyle}>settings</Icon>
+                <Icon sx={[iconsStyle, persistentTopIconSx]}>settings</Icon>
               </IconButton>
               <IconButton
                 size="small"
@@ -210,13 +319,15 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
                 aria-controls="notification-menu"
                 aria-haspopup="true"
                 variant="contained"
-                onClick={handleOpenMenu}
+                onClick={handleOpenNotificationsMenu}
               >
                 <MDBadge badgeContent={9} color="error" size="xs" circular>
-                  <Icon sx={iconsStyle}>notifications</Icon>
+                  <Icon sx={[iconsStyle, persistentTopIconSx]}>notifications</Icon>
                 </MDBadge>
               </IconButton>
-              {renderMenu()}
+              {renderProfileMenu()}
+              {renderSettingsMenu()}
+              {renderNotificationsMenu()}
             </MDBox>
           </MDBox>
         )}

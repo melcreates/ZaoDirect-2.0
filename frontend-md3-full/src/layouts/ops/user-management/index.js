@@ -92,7 +92,7 @@ function UserManagement() {
     setError("");
     setNotice("");
     try {
-      await HttpService.patch(`/api/auth/users/${selectedUser.id}`, {
+      await HttpService.patch(`/auth/users/${selectedUser.id}`, {
         role: form.role,
         isActive: form.isActive === "true",
         verificationStatus: form.verificationStatus,

@@ -80,9 +80,6 @@ import SignUpCover from "layouts/authentication/sign-up/cover";
 import ResetCover from "layouts/authentication/reset-password/cover";
 import Logout from "layouts/authentication/logout";
 
-// Material Dashboard 3 PRO React components
-import MDAvatar from "components/MDAvatar";
-
 // @mui icons
 import Icon from "@mui/material/Icon";
 
@@ -118,39 +115,6 @@ const currentUser = getCurrentUserProfile();
 const isFarmerView = currentUser.role === "farmer";
 
 const routes = [
-  {
-    type: "collapse",
-    name: currentUser.name,
-    key: "brooklyn-alice",
-    icon: currentUser.photoUrl ? (
-      <MDAvatar src={currentUser.photoUrl} alt={currentUser.name} size="sm" />
-    ) : (
-      <MDAvatar alt={currentUser.name} size="sm" bgColor="light" sx={{ color: "#000000" }}>
-        {currentUser.initial}
-      </MDAvatar>
-    ),
-    collapse: [
-      {
-        name: "My Profile",
-        key: "profile-overview",
-        route: "/pages/profile/profile-overview",
-        component: <ProfileOverview />,
-      },
-      {
-        name: "Settings",
-        key: "settings",
-        route: "/pages/account/settings",
-        component: <Settings />,
-      },
-      {
-        name: "Logout",
-        key: "logout",
-        route: "/authentication/logout",
-        component: <Logout />,
-      },
-    ],
-  },
-  { type: "divider", key: "divider-0" },
   {
     type: "collapse",
     name: "Dashboards",
@@ -544,6 +508,24 @@ const routes = [
     component: <ResetCover />,
   },
   {
+    type: "route",
+    key: "profile-overview-hidden",
+    route: "/pages/profile/profile-overview",
+    component: <ProfileOverview />,
+  },
+  {
+    type: "route",
+    key: "settings-hidden",
+    route: "/pages/account/settings",
+    component: <Settings />,
+  },
+  {
+    type: "route",
+    key: "logout-hidden",
+    route: "/authentication/logout",
+    component: <Logout />,
+  },
+  {
     type: "collapse",
     name: "Basic",
     key: "basic",
@@ -712,8 +694,6 @@ const routes = [
 ].filter(Boolean);
 
 const farmerAllowedKeys = new Set([
-  "brooklyn-alice",
-  "divider-0",
   "dashboards",
   "title-pages",
   "product-page",
@@ -726,11 +706,12 @@ const farmerAllowedKeys = new Set([
   "sign-in-illustration-hidden",
   "sign-up-cover-hidden",
   "reset-password-cover-hidden",
+  "profile-overview-hidden",
+  "settings-hidden",
+  "logout-hidden",
 ]);
 
 const adminAllowedKeys = new Set([
-  "brooklyn-alice",
-  "divider-0",
   "dashboards",
   "title-pages",
   "product-page",
@@ -757,6 +738,9 @@ const adminAllowedKeys = new Set([
   "sign-in-illustration-hidden",
   "sign-up-cover-hidden",
   "reset-password-cover-hidden",
+  "profile-overview-hidden",
+  "settings-hidden",
+  "logout-hidden",
 ]);
 
 const visibleRoutes = isFarmerView

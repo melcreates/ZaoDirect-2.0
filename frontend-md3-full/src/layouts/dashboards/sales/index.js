@@ -106,9 +106,7 @@ function Sales() {
           (sum, o) => sum + Number(o?.required_quantity || 0) * Number(o?.target_price || 0),
           0
         );
-      const settledKes = payouts
-        .filter((p) => String(p?.status || "").toUpperCase() === "PAID")
-        .reduce((sum, p) => sum + Number(p?.amount || 0), 0);
+      const settledKes = Number(adminOverview?.settledToFarmersKes || 0);
 
       return {
         shippedValueText: formatUSD(shippedValue),

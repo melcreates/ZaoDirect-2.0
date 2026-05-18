@@ -1854,7 +1854,8 @@ router.get("/finance-overview", requireRole("ADMIN"), async (_req, res, next) =>
         `SELECT
            currency,
            COALESCE(SUM(amount),0) AS total_value,
-           COALESCE(SUM(CASE WHEN status IN ('PENDING','APPROVED') THEN amount ELSE 0 END),0) AS pending_value
+           COALESCE(SUM(CASE WHEN status IN ('PENDING','APPROVED') THEN amount ELSE 0 END),0) AS pending_value,
+           COALESCE(SUM(CASE WHEN status = 'PAID' THEN amount ELSE 0 END),0) AS paid_value
          FROM payouts
          GROUP BY currency`
       ),
@@ -1876,9 +1877,10 @@ router.get("/finance-overview", requireRole("ADMIN"), async (_req, res, next) =>
         const key = row.currency || "KES";
         acc.total[key] = Number(row.total_value || 0);
         acc.pending[key] = Number(row.pending_value || 0);
+        acc.paid[key] = Number(row.paid_value || 0);
         return acc;
       },
-      { total: {}, pending: {} }
+      { total: {}, pending: {}, paid: {} }
     );
 
     const totalPayoutValueUsd = Object.entries(payoutByCurrency.total || {}).reduce(
@@ -1889,14 +1891,27 @@ router.get("/finance-overview", requireRole("ADMIN"), async (_req, res, next) =>
       (sum, [currency, value]) => sum + convertToUsd(value, currency),
       0
     );
+    const settledToFarmersKes = Object.entries(payoutByCurrency.paid || {}).reduce((sum, [currency, value]) => {
+      const code = String(currency || "KES").toUpperCase();
+      if (code === "KES") return sum + Number(value || 0);
+      if (code === "USD") return sum + Number(value || 0) * usdToKesRate;
+      if (code === "EUR") return sum + Number(value || 0) * eurToKesRate;
+      return sum;
+    }, 0);
 
     return res.json({
       totalPayoutValue: Number(payoutsAgg.rows[0].total_payout_value || 0),
       pendingPayoutValue: Number(payoutsAgg.rows[0].pending_payout_value || 0),
       totalPayoutByCurrency: payoutByCurrency.total,
       pendingPayoutByCurrency: payoutByCurrency.pending,
+      paidPayoutByCurrency: payoutByCurrency.paid,
       totalPayoutValueUsd: Number(totalPayoutValueUsd || 0),
       pendingPayoutValueUsd: Number(pendingPayoutValueUsd || 0),
+      settledToFarmersKes: Number(settledToFarmersKes || 0),
+      exchangeRates: {
+        USD_KES: usdToKesRate,
+        EUR_KES: eurToKesRate,
+      },
       totalCostValue: Number(costsAgg.rows[0].total_cost_value || 0),
       openInternationalOrders: Number(openOrdersAgg.rows[0].open_international_orders || 0),
     });

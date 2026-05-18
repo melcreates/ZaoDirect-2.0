@@ -27,7 +27,7 @@ import Footer from "examples/Footer";
 function BaseLayout({ stickyNavbar = false, children }) {
   return (
     <DashboardLayout>
-      <DashboardNavbar absolute={!stickyNavbar} isMini />
+      <DashboardNavbar absolute={!stickyNavbar} />
       <MDBox mt={stickyNavbar ? 3 : 10}>
         {children}
       </MDBox>
