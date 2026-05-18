@@ -35,10 +35,10 @@ import Icon from "@mui/material/Icon";
 import MDBox from "components/MDBox";
 import MDInput from "components/MDInput";
 import MDBadge from "components/MDBadge";
+import MDTypography from "components/MDTypography";
 
 // Material Dashboard 3 PRO React examples
 import Breadcrumbs from "examples/Breadcrumbs";
-import NotificationItem from "examples/Items/NotificationItem";
 
 // Custom styles for DashboardNavbar
 import {
@@ -56,6 +56,8 @@ import {
   setTransparentNavbar,
   setMiniSidenav,
 } from "context";
+import AuthService from "services/auth-service";
+import HttpService from "services/http.service";
 
 function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
   const [navbarType, setNavbarType] = useState();
@@ -70,7 +72,11 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
   const [openNotificationsMenu, setOpenNotificationsMenu] = useState(false);
   const [profileAnchor, setProfileAnchor] = useState(null);
   const [settingsAnchor, setSettingsAnchor] = useState(null);
-  const route = useLocation().pathname.split("/").slice(1);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [notificationText, setNotificationText] = useState("No pending workflow notifications.");
+  const [notificationRoute, setNotificationRoute] = useState("");
+  const location = useLocation();
+  const route = location.pathname.split("/").slice(1);
 
   useEffect(() => {
     // Setting the navbar type
@@ -101,6 +107,61 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
     return () => window.removeEventListener("scroll", handleTransparentNavbar);
   }, [dispatch, fixedNavbar]);
 
+  useEffect(() => {
+    let mounted = true;
+    const loadNotifications = async () => {
+      try {
+        const me = await AuthService.getProfile();
+        const role = String(me?.role || "").toUpperCase();
+
+        if (role === "ADMIN") {
+          const rows = await HttpService.get("/ops/farmer-purchase-orders");
+          const list = Array.isArray(rows) ? rows : [];
+          const pendingAllocation = list.filter((o) => {
+            const status = String(o?.status || "").toUpperCase();
+            const accepted = Number(o?.accepted_quantity || 0);
+            return status === "CONFIRMED" && accepted <= 0;
+          }).length;
+
+          if (!mounted) return;
+          setNotificationCount(pendingAllocation);
+          setNotificationRoute("/farmer-procurement");
+          setNotificationText(
+            pendingAllocation > 0
+              ? `You have ${pendingAllocation} order${pendingAllocation === 1 ? "" : "s"} pending allocation.`
+              : "No orders pending allocation."
+          );
+          return;
+        }
+
+        const myOrders = await HttpService.get("/ops/farmer-purchase-orders/mine");
+        const list = Array.isArray(myOrders) ? myOrders : [];
+        const pendingAcceptance = list.filter(
+          (o) => String(o?.status || "").toUpperCase() === "OPEN"
+        ).length;
+
+        if (!mounted) return;
+        setNotificationCount(pendingAcceptance);
+        setNotificationRoute("/ecommerce/orders/order-list");
+        setNotificationText(
+          pendingAcceptance > 0
+            ? `You have ${pendingAcceptance} order${pendingAcceptance === 1 ? "" : "s"} pending acceptance.`
+            : "No orders pending acceptance."
+        );
+      } catch (_e) {
+        if (!mounted) return;
+        setNotificationCount(0);
+        setNotificationRoute("");
+        setNotificationText("Unable to load notifications right now.");
+      }
+    };
+
+    loadNotifications();
+    return () => {
+      mounted = false;
+    };
+  }, [location.pathname]);
+
   const handleMiniSidenav = () => setMiniSidenav(dispatch, !miniSidenav);
   const handleOpenNotificationsMenu = (event) => setOpenNotificationsMenu(event.currentTarget);
   const handleCloseNotificationsMenu = () => setOpenNotificationsMenu(false);
@@ -126,15 +187,21 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
       onClose={handleCloseNotificationsMenu}
       sx={{ mt: 2 }}
     >
-      <NotificationItem icon={<Icon>email</Icon>} title="Check new messages" />
-      <NotificationItem
-        icon={<Icon>podcasts</Icon>}
-        title="Manage Podcast sessions"
-      />
-      <NotificationItem
-        icon={<Icon>shopping_cart</Icon>}
-        title="Payment successfully completed"
-      />
+      <MDBox
+        px={2}
+        py={1.5}
+        maxWidth={280}
+        sx={{ cursor: notificationRoute ? "pointer" : "default" }}
+        onClick={() => {
+          if (!notificationRoute) return;
+          handleCloseNotificationsMenu();
+          goTo(notificationRoute);
+        }}
+      >
+        <MDTypography variant="button" color="text" sx={{ whiteSpace: "normal" }}>
+          {notificationText}
+        </MDTypography>
+      </MDBox>
     </Menu>
   );
 
@@ -252,7 +319,7 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
   });
 
   const persistentTopIconSx = {
-    color: "#344767 !important",
+    color: "#67748e !important",
   };
 
   return (
@@ -321,7 +388,7 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
                 variant="contained"
                 onClick={handleOpenNotificationsMenu}
               >
-                <MDBadge badgeContent={9} color="error" size="xs" circular>
+                <MDBadge badgeContent={notificationCount} color="error" size="xs" circular>
                   <Icon sx={[iconsStyle, persistentTopIconSx]}>notifications</Icon>
                 </MDBadge>
               </IconButton>
