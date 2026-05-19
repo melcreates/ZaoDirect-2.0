@@ -134,7 +134,7 @@ const pageRoutes = [
         collapse: [
           {
             name: "basic",
-            route: "/authentication/sign-in/basic",
+            route: "/authentication/sign-in",
           },
           {
             name: "cover",
@@ -153,7 +153,7 @@ const pageRoutes = [
         collapse: [
           {
             name: "cover",
-            route: "/authentication/sign-up/cover",
+            route: "/authentication/sign-up",
           },
         ],
       },
@@ -164,7 +164,7 @@ const pageRoutes = [
         collapse: [
           {
             name: "cover",
-            route: "/authentication/reset-password/cover",
+            route: "/authentication/reset-password",
           },
         ],
       },
@@ -266,3 +266,4 @@ const pageRoutes = [
 ];
 
 export default pageRoutes;
+

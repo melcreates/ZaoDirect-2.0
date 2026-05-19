@@ -4,8 +4,6 @@ import { Link } from "react-router-dom";
 import Card from "@mui/material/Card";
 import Switch from "@mui/material/Switch";
 
-import GoogleIcon from "@mui/icons-material/Google";
-
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
@@ -133,6 +131,56 @@ function Basic() {
     }
   };
 
+  const GoogleAuthButton = ({ onClick, disabled }) => (
+    <MDBox
+      component="button"
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      sx={{
+        width: "100%",
+        minHeight: "52px",
+        border: "1px solid #DADCE0",
+        borderRadius: "14px",
+        backgroundColor: "#fff",
+        color: "#3c4043",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 1.25,
+        cursor: disabled ? "not-allowed" : "pointer",
+        transition: "box-shadow .2s ease, border-color .2s ease",
+        "&:hover": disabled ? {} : { boxShadow: "0 1px 3px rgba(60,64,67,.3)", borderColor: "#c6c9cc" },
+        "&:disabled": { opacity: 0.7 },
+      }}
+    >
+      <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          fill="#EA4335"
+          d="M12 10.2v3.9h5.4c-.2 1.2-.9 2.2-1.9 2.9v2.4h3.1c1.8-1.7 2.9-4.1 2.9-7 0-.6-.1-1.2-.2-1.8H12z"
+        />
+        <path
+          fill="#34A853"
+          d="M12 22c2.6 0 4.8-.9 6.4-2.5l-3.1-2.4c-.9.6-2 1-3.3 1-2.5 0-4.7-1.7-5.4-4H3.4v2.5C5 19.8 8.2 22 12 22z"
+        />
+        <path
+          fill="#4A90E2"
+          d="M6.6 14.1c-.2-.6-.3-1.3-.3-2.1s.1-1.4.3-2.1V7.4H3.4C2.8 8.7 2.5 10.3 2.5 12s.3 3.3.9 4.6l3.2-2.5z"
+        />
+        <path
+          fill="#FBBC05"
+          d="M12 5.9c1.4 0 2.7.5 3.7 1.5l2.8-2.8C16.8 3 14.6 2 12 2 8.2 2 5 4.2 3.4 7.4l3.2 2.5c.7-2.3 2.9-4 5.4-4z"
+        />
+      </svg>
+      <MDTypography
+        component="span"
+        sx={{ fontSize: "0.94rem", fontWeight: 500, color: "#3c4043", lineHeight: 1.1 }}
+      >
+        Continue with Google
+      </MDTypography>
+    </MDBox>
+  );
+
   return (
     <BasicLayout image={bgImage} showNavbar={false} showFooter={false}>
       <Card>
@@ -199,26 +247,12 @@ function Basic() {
               </MDButton>
             </MDBox>
             <MDBox mt={2} textAlign="center">
-              <MDTypography variant="button" color="text">
-                or sign in with
-              </MDTypography>
-              <MDBox mt={1}>
-                <MDButton
-                  variant="outlined"
-                  color="info"
-                  circular
-                  iconOnly
-                  onClick={handleGoogleSignIn}
-                  disabled={googleLoading}
-                >
-                  <GoogleIcon />
-                </MDButton>
-              </MDBox>
+              <GoogleAuthButton onClick={handleGoogleSignIn} disabled={googleLoading} />
             </MDBox>
             <MDBox mt={2} mb={1} textAlign="center">
               <MDTypography
                 component={Link}
-                to="/authentication/reset-password/cover"
+                to="/authentication/reset-password"
                 variant="button"
                 color="info"
                 fontWeight="medium"
@@ -232,7 +266,7 @@ function Basic() {
                 Don&apos;t have an account?{" "}
                 <MDTypography
                   component={Link}
-                  to="/authentication/sign-up/cover"
+                  to="/authentication/sign-up"
                   variant="button"
                   color="info"
                   fontWeight="medium"
@@ -250,3 +284,4 @@ function Basic() {
 }
 
 export default Basic;
+

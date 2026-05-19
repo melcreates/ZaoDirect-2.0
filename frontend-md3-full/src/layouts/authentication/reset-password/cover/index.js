@@ -164,7 +164,7 @@ function Cover() {
                 Back to{" "}
                 <MDTypography
                   component={Link}
-                  to="/authentication/sign-in/basic"
+                  to="/authentication/sign-in"
                   variant="button"
                   color="info"
                   fontWeight="medium"
@@ -182,3 +182,4 @@ function Cover() {
 }
 
 export default Cover;
+

@@ -432,7 +432,7 @@ const routes = [
           {
             name: "Basic",
             key: "basic",
-            route: "/authentication/sign-in/basic",
+            route: "/authentication/sign-in",
             component: <SignInBasic />,
           },
           {
@@ -456,7 +456,7 @@ const routes = [
           {
             name: "Cover",
             key: "cover",
-            route: "/authentication/sign-up/cover",
+            route: "/authentication/sign-up",
             component: <SignUpCover />,
           },
         ],
@@ -468,7 +468,7 @@ const routes = [
           {
             name: "Cover",
             key: "cover",
-            route: "/authentication/reset-password/cover",
+            route: "/authentication/reset-password",
             component: <ResetCover />,
           },
         ],
@@ -480,7 +480,7 @@ const routes = [
   {
     type: "route",
     key: "sign-in-basic-hidden",
-    route: "/authentication/sign-in/basic",
+    route: "/authentication/sign-in",
     component: <SignInBasic />,
   },
   {
@@ -498,13 +498,13 @@ const routes = [
   {
     type: "route",
     key: "sign-up-cover-hidden",
-    route: "/authentication/sign-up/cover",
+    route: "/authentication/sign-up",
     component: <SignUpCover />,
   },
   {
     type: "route",
     key: "reset-password-cover-hidden",
-    route: "/authentication/reset-password/cover",
+    route: "/authentication/reset-password",
     component: <ResetCover />,
   },
   {
@@ -748,6 +748,7 @@ const visibleRoutes = isFarmerView
   : routes.filter((route) => adminAllowedKeys.has(route?.key));
 
 export default visibleRoutes;
+
 
 
 

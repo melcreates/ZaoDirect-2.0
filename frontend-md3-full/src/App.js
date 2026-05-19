@@ -149,7 +149,7 @@ export default function App() {
 
   useEffect(() => {
     if (!isAuthenticated && !pathname.startsWith("/authentication/")) {
-      window.location.replace("/authentication/sign-in/basic");
+      window.location.replace("/authentication/sign-in");
       return;
     }
     setUserRouteProfile(readUserProfile());
@@ -186,7 +186,7 @@ export default function App() {
         let routeElement = route.component;
 
         if (!isAuthenticated && !isAuthRoute) {
-          routeElement = <Navigate to="/authentication/sign-in/basic" replace />;
+          routeElement = <Navigate to="/authentication/sign-in" replace />;
         }
 
         if (isAuthenticated && isAuthRoute && !isLogoutRoute) {
@@ -251,8 +251,8 @@ export default function App() {
         {layout === "vr" && <Configurator />}
         <Routes>
         {getRoutes(routesWithLiveUser)}
-        <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboards/analytics" : "/authentication/sign-in/basic"} replace />} />
-        <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboards/analytics" : "/authentication/sign-in/basic"} replace />} />
+        <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboards/analytics" : "/authentication/sign-in"} replace />} />
+        <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboards/analytics" : "/authentication/sign-in"} replace />} />
       </Routes>
       </ThemeProvider>
     </CacheProvider>
@@ -276,9 +276,10 @@ export default function App() {
       {layout === "vr" && <Configurator />}
       <Routes>
         {getRoutes(routesWithLiveUser)}
-        <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboards/analytics" : "/authentication/sign-in/basic"} replace />} />
-        <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboards/analytics" : "/authentication/sign-in/basic"} replace />} />
+        <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboards/analytics" : "/authentication/sign-in"} replace />} />
+        <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboards/analytics" : "/authentication/sign-in"} replace />} />
       </Routes>
     </ThemeProvider>
   );
 }
+

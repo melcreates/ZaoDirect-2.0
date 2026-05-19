@@ -216,7 +216,7 @@ function Settings() {
       await AuthService.deactivateMyAccount();
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/authentication/sign-in/basic";
+      window.location.href = "/authentication/sign-in";
     } catch (err) {
       setError(err?.message || "Unable to deactivate account.");
     } finally {
@@ -233,7 +233,7 @@ function Settings() {
       await AuthService.deleteMyAccount();
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/authentication/sign-in/basic";
+      window.location.href = "/authentication/sign-in";
     } catch (err) {
       setError(err?.message || "Unable to delete account.");
     } finally {
@@ -321,3 +321,4 @@ function Settings() {
 }
 
 export default Settings;
+

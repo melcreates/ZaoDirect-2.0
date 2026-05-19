@@ -103,7 +103,7 @@ function Cover() {
                 Don&apos;t have an account?{" "}
                 <MDTypography
                   component={Link}
-                  to="/authentication/sign-up/cover"
+                  to="/authentication/sign-up"
                   variant="button"
                   color="info"
                   fontWeight="medium"
@@ -121,3 +121,4 @@ function Cover() {
 }
 
 export default Cover;
+
