@@ -180,7 +180,7 @@ function Basic() {
               <MDInput
                 name="email"
                 type="email"
-                label="Email"
+                placeholder="Email"
                 autoComplete="email"
                 fullWidth
                 value={form.email}
@@ -191,7 +191,7 @@ function Basic() {
               <MDInput
                 name="password"
                 type="password"
-                label="Password"
+                placeholder="Password"
                 autoComplete="current-password"
                 fullWidth
                 value={form.password}

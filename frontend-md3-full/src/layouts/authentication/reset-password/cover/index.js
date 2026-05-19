@@ -110,7 +110,7 @@ function Cover() {
                 name="email"
                 type="email"
                 autoComplete="email"
-                label="Email"
+                placeholder="Email"
                 variant="standard"
                 fullWidth
                 value={form.email}
@@ -122,7 +122,7 @@ function Cover() {
                 name="currentPassword"
                 type="password"
                 autoComplete="current-password"
-                label="Current Password"
+                placeholder="Current Password"
                 variant="standard"
                 fullWidth
                 value={form.currentPassword}
@@ -134,7 +134,7 @@ function Cover() {
                 name="newPassword"
                 type="password"
                 autoComplete="new-password"
-                label="New Password"
+                placeholder="New Password"
                 variant="standard"
                 fullWidth
                 value={form.newPassword}
@@ -146,7 +146,7 @@ function Cover() {
                 name="confirmPassword"
                 type="password"
                 autoComplete="new-password"
-                label="Confirm New Password"
+                placeholder="Confirm New Password"
                 variant="standard"
                 fullWidth
                 value={form.confirmPassword}

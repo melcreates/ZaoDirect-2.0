@@ -183,7 +183,7 @@ function Cover() {
               <MDInput
                 name="name"
                 type="text"
-                label="Name"
+                placeholder="Name"
                 variant="standard"
                 autoComplete="name"
                 fullWidth
@@ -195,7 +195,7 @@ function Cover() {
               <MDInput
                 name="email"
                 type="email"
-                label="Email"
+                placeholder="Email"
                 variant="standard"
                 autoComplete="email"
                 fullWidth
@@ -207,7 +207,7 @@ function Cover() {
               <MDInput
                 name="password"
                 type="password"
-                label="Password"
+                placeholder="Password"
                 variant="standard"
                 autoComplete="new-password"
                 fullWidth
