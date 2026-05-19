@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 import Card from "@mui/material/Card";
@@ -13,15 +13,18 @@ import MDAlert from "components/MDAlert";
 import BasicLayout from "layouts/authentication/components/BasicLayout";
 import AuthService from "services/auth-service";
 
-import bgImage from "assets/images/bg-sign-in-basic.jpeg";
+import bgImage from "assets/images/bg-sign-in-farm.jpg";
 
 function Basic() {
   const [rememberMe, setRememberMe] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleReady, setGoogleReady] = useState(false);
   const [error, setError] = useState("");
   const googleInitializedRef = useRef(false);
+  const googleButtonRef = useRef(null);
+  const googleButtonWrapRef = useRef(null);
 
   const handleSetRememberMe = () => setRememberMe(!rememberMe);
   const handleChange = ({ target: { name, value } }) => {
@@ -85,101 +88,67 @@ function Basic() {
       document.head.appendChild(script);
     });
 
-  const handleGoogleSignIn = async () => {
-    setError("");
-    setGoogleLoading(true);
+  useEffect(() => {
+    let active = true;
 
-    try {
-      const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-      if (!clientId) {
-        throw new Error("Google sign in is not configured.");
-      }
+    const initGoogle = async () => {
+      try {
+        const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+        if (!clientId) return;
 
-      await ensureGoogleScript();
+        await ensureGoogleScript();
+        if (!active || !window.google?.accounts?.id) return;
 
-      if (!googleInitializedRef.current) {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: async (googleResponse) => {
-            try {
-              const idToken = googleResponse?.credential;
-              if (!idToken) {
-                throw new Error("Google sign in did not return a token.");
+        if (!googleInitializedRef.current) {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: async (googleResponse) => {
+              try {
+                const idToken = googleResponse?.credential;
+                if (!idToken) {
+                  throw new Error("Google sign in did not return a token.");
+                }
+                const response = await AuthService.googleAuth(idToken);
+                completeLogin(response);
+              } catch (err) {
+                setError(err?.message || "Google sign in failed.");
+              } finally {
+                setGoogleLoading(false);
               }
-              const response = await AuthService.googleAuth(idToken);
-              completeLogin(response);
-            } catch (err) {
-              setError(err?.message || "Google sign in failed.");
-            } finally {
-              setGoogleLoading(false);
-            }
-          },
-          ux_mode: "popup",
-          auto_select: false,
-        });
-        googleInitializedRef.current = true;
-      }
-
-      window.google.accounts.id.prompt((notification) => {
-        if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
-          setGoogleLoading(false);
+            },
+            ux_mode: "popup",
+            auto_select: false,
+          });
+          googleInitializedRef.current = true;
         }
-      });
-    } catch (err) {
-      setError(err?.message || "Google sign in failed.");
-      setGoogleLoading(false);
-    }
-  };
 
-  const GoogleAuthButton = ({ onClick, disabled }) => (
-    <MDBox
-      component="button"
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      sx={{
-        width: "100%",
-        minHeight: "52px",
-        border: "1px solid #DADCE0",
-        borderRadius: "14px",
-        backgroundColor: "#fff",
-        color: "#3c4043",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 1.25,
-        cursor: disabled ? "not-allowed" : "pointer",
-        transition: "box-shadow .2s ease, border-color .2s ease",
-        "&:hover": disabled ? {} : { boxShadow: "0 1px 3px rgba(60,64,67,.3)", borderColor: "#c6c9cc" },
-        "&:disabled": { opacity: 0.7 },
-      }}
-    >
-      <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          fill="#EA4335"
-          d="M12 10.2v3.9h5.4c-.2 1.2-.9 2.2-1.9 2.9v2.4h3.1c1.8-1.7 2.9-4.1 2.9-7 0-.6-.1-1.2-.2-1.8H12z"
-        />
-        <path
-          fill="#34A853"
-          d="M12 22c2.6 0 4.8-.9 6.4-2.5l-3.1-2.4c-.9.6-2 1-3.3 1-2.5 0-4.7-1.7-5.4-4H3.4v2.5C5 19.8 8.2 22 12 22z"
-        />
-        <path
-          fill="#4A90E2"
-          d="M6.6 14.1c-.2-.6-.3-1.3-.3-2.1s.1-1.4.3-2.1V7.4H3.4C2.8 8.7 2.5 10.3 2.5 12s.3 3.3.9 4.6l3.2-2.5z"
-        />
-        <path
-          fill="#FBBC05"
-          d="M12 5.9c1.4 0 2.7.5 3.7 1.5l2.8-2.8C16.8 3 14.6 2 12 2 8.2 2 5 4.2 3.4 7.4l3.2 2.5c.7-2.3 2.9-4 5.4-4z"
-        />
-      </svg>
-      <MDTypography
-        component="span"
-        sx={{ fontSize: "0.94rem", fontWeight: 500, color: "#3c4043", lineHeight: 1.1 }}
-      >
-        Continue with Google
-      </MDTypography>
-    </MDBox>
-  );
+        if (active) {
+          setGoogleReady(true);
+        }
+      } catch (_error) {
+        if (active) setGoogleReady(false);
+      }
+    };
+
+    initGoogle();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!googleReady || !window.google?.accounts?.id || !googleButtonRef.current) return;
+    googleButtonRef.current.innerHTML = "";
+    const computedWidth = Math.max(220, Math.floor(googleButtonWrapRef.current?.offsetWidth || 360));
+    window.google.accounts.id.renderButton(googleButtonRef.current, {
+      theme: "outline",
+      size: "large",
+      text: "continue_with",
+      shape: "pill",
+      width: computedWidth,
+      logo_alignment: "left",
+    });
+  }, [googleReady]);
 
   return (
     <BasicLayout image={bgImage} showNavbar={false} showFooter={false}>
@@ -247,7 +216,22 @@ function Basic() {
               </MDButton>
             </MDBox>
             <MDBox mt={2} textAlign="center">
-              <GoogleAuthButton onClick={handleGoogleSignIn} disabled={googleLoading} />
+              <MDBox
+                ref={googleButtonWrapRef}
+                sx={{
+                  width: "100%",
+                  display: "block",
+                  opacity: googleReady ? 1 : 0.7,
+                  pointerEvents: googleReady ? "auto" : "none",
+                }}
+              >
+                <MDBox ref={googleButtonRef} />
+              </MDBox>
+              {!googleReady && (
+                <MDTypography variant="button" color="text" mt={1} display="block">
+                  Loading Google sign in...
+                </MDTypography>
+              )}
             </MDBox>
             <MDBox mt={2} mb={1} textAlign="center">
               <MDTypography
