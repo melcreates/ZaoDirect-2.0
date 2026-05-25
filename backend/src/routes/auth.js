@@ -180,6 +180,8 @@ async function ensureSettingsTables() {
     )
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`);
+  await query(`ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS remember_me BOOLEAN NOT NULL DEFAULT FALSE`);
+  await query(`ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ NULL`);
 }
 
 async function ensureNotificationSettingsRow(userId) {
@@ -229,14 +231,39 @@ function getClientIp(req) {
   return req.ip || null;
 }
 
-async function createUserSession(req, userId) {
-  await ensureSettingsTables();
-  await query(`UPDATE user_sessions SET is_current = FALSE WHERE user_id = $1 AND revoked_at IS NULL`, [userId]);
+async function cleanupExpiredSessions(userId = null) {
+  if (userId) {
+    await query(
+      `UPDATE user_sessions
+       SET revoked_at = NOW(), is_current = FALSE
+       WHERE user_id = $1
+         AND revoked_at IS NULL
+         AND expires_at IS NOT NULL
+         AND expires_at <= NOW()`,
+      [userId]
+    );
+    return;
+  }
 
   await query(
-    `INSERT INTO user_sessions (id, user_id, user_agent, ip_address, is_current, last_active_at)
-     VALUES ($1, $2, $3, $4, TRUE, NOW())`,
-    [crypto.randomUUID(), userId, req.headers["user-agent"] || null, getClientIp(req)]
+    `UPDATE user_sessions
+     SET revoked_at = NOW(), is_current = FALSE
+     WHERE revoked_at IS NULL
+       AND expires_at IS NOT NULL
+       AND expires_at <= NOW()`
+  );
+}
+
+async function createUserSession(req, userId, rememberMe = false) {
+  await ensureSettingsTables();
+  await cleanupExpiredSessions(userId);
+  await query(`UPDATE user_sessions SET is_current = FALSE WHERE user_id = $1 AND revoked_at IS NULL`, [userId]);
+
+  const expiresAt = rememberMe ? null : new Date(Date.now() + 2 * 60 * 60 * 1000);
+  await query(
+    `INSERT INTO user_sessions (id, user_id, user_agent, ip_address, is_current, last_active_at, remember_me, expires_at)
+     VALUES ($1, $2, $3, $4, TRUE, NOW(), $5, $6)`,
+    [crypto.randomUUID(), userId, req.headers["user-agent"] || null, getClientIp(req), rememberMe, expiresAt]
   );
 }
 
@@ -285,7 +312,7 @@ router.post("/signup", async (req, res, next) => {
 
     const token = signToken(created.user, { rememberMe: false });
     await ensureNotificationSettingsRow(created.user.id);
-    await createUserSession(req, created.user.id);
+    await createUserSession(req, created.user.id, false);
     return res.status(201).json({
       token,
       user: userResponseRow(created.user, created.farmerProfile, []),
@@ -333,7 +360,7 @@ router.post("/login", async (req, res, next) => {
     const assets = await getUserAssets(user.id);
     const token = signToken(user, { rememberMe: Boolean(data.rememberMe) });
     await ensureNotificationSettingsRow(user.id);
-    await createUserSession(req, user.id);
+    await createUserSession(req, user.id, Boolean(data.rememberMe));
     return res.json({
       token,
       user: userResponseRow(user, profileResult.rows[0] ?? null, assets),
@@ -549,7 +576,7 @@ router.post("/google", async (req, res, next) => {
       const assets = await getUserAssets(created.user.id);
       const token = signToken(created.user, { rememberMe: false });
       await ensureNotificationSettingsRow(created.user.id);
-      await createUserSession(req, created.user.id);
+      await createUserSession(req, created.user.id, false);
       return res.json({
         token,
         user: userResponseRow(created.user, created.farmerProfile, assets),
@@ -570,7 +597,7 @@ router.post("/google", async (req, res, next) => {
     const assets = await getUserAssets(user.id);
     const token = signToken(user, { rememberMe: false });
     await ensureNotificationSettingsRow(user.id);
-    await createUserSession(req, user.id);
+    await createUserSession(req, user.id, false);
     return res.json({
       token,
       user: userResponseRow(user, profileResult.rows[0] ?? null, assets),
@@ -866,8 +893,9 @@ router.patch("/me/settings/notifications", requireAuth, async (req, res, next) =
 router.get("/me/sessions", requireAuth, async (req, res, next) => {
   try {
     await ensureSettingsTables();
+    await cleanupExpiredSessions(req.user.sub);
     let result = await query(
-      `SELECT id, user_agent, ip_address, is_current, created_at, last_active_at
+      `SELECT id, user_agent, ip_address, is_current, created_at, last_active_at, remember_me, expires_at
        FROM user_sessions
        WHERE user_id = $1 AND revoked_at IS NULL
        ORDER BY is_current DESC, last_active_at DESC`,
@@ -878,7 +906,7 @@ router.get("/me/sessions", requireAuth, async (req, res, next) => {
     if (result.rowCount === 0) {
       await createUserSession(req, req.user.sub);
       result = await query(
-        `SELECT id, user_agent, ip_address, is_current, created_at, last_active_at
+        `SELECT id, user_agent, ip_address, is_current, created_at, last_active_at, remember_me, expires_at
          FROM user_sessions
          WHERE user_id = $1 AND revoked_at IS NULL
          ORDER BY is_current DESC, last_active_at DESC`,
