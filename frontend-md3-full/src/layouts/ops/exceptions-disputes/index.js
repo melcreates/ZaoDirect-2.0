@@ -163,7 +163,7 @@ function ExceptionsDisputes() {
     setSaving(true);
     setError("");
     try {
-      await HttpService.patch(`/api/ops/dispute-cases/${selectedCase.id}`, {
+      await HttpService.patch(`/ops/dispute-cases/${selectedCase.id}`, {
         status: editForm.status,
         ownerUserId: editForm.ownerUserId || undefined,
         dueAt: editForm.dueAt || undefined,
@@ -260,5 +260,6 @@ function ExceptionsDisputes() {
 }
 
 export default ExceptionsDisputes;
+
 
 

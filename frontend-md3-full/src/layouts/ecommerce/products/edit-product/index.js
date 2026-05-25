@@ -16,8 +16,6 @@ import Footer from "examples/Footer";
 
 import HttpService from "services/http.service";
 
-import fallbackImage from "assets/images/ecommerce/black-chair.jpeg";
-
 function formatStatus(status) {
   return String(status || "")
     .toLowerCase()
@@ -53,10 +51,11 @@ function EditProduct() {
   const canEditCore = !isPublished;
 
   const displayImage = useMemo(() => {
+    if (loading) return "";
     if (form.photoUrl) return form.photoUrl;
     const photos = Array.isArray(listing?.photo_urls) ? listing.photo_urls : [];
-    return photos[0] || fallbackImage;
-  }, [form.photoUrl, listing]);
+    return photos[0] || "";
+  }, [form.photoUrl, listing, loading]);
 
   useEffect(() => {
     const load = async () => {
@@ -190,9 +189,11 @@ function EditProduct() {
                   borderRadius="lg"
                   minHeight="16rem"
                   sx={{
-                    backgroundImage: `url(${displayImage})`,
+                    backgroundColor: displayImage ? "transparent" : "#f3f4f6",
+                    backgroundImage: displayImage ? `url(${displayImage})` : "none",
                     backgroundSize: "cover",
                     backgroundPosition: "center",
+                    border: displayImage ? "none" : "1px dashed #d1d5db",
                   }}
                 />
                 <MDBox mt={2}>

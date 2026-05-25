@@ -2,9 +2,10 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
 
-export function signToken(user) {
+export function signToken(user, options = {}) {
+  const expiresIn = options.rememberMe ? "30d" : "2h";
   return jwt.sign({ sub: user.id, role: user.role, email: user.email }, JWT_SECRET, {
-    expiresIn: "7d",
+    expiresIn,
   });
 }
 

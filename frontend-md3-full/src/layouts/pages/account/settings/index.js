@@ -82,7 +82,7 @@ function Settings() {
         setSessions(Array.isArray(sessionsRes) ? sessionsRes : []);
         localStorage.setItem("user", JSON.stringify(me));
       } catch (err) {
-        setError(err?.message || "Unable to load settings.");
+        setError("Something went wrong. Please refresh.");
       } finally {
         setLoading(false);
       }
@@ -272,13 +272,6 @@ function Settings() {
                     <MDAlert color="success">
                       <MDTypography variant="body2" color="white">
                         {success}
-                      </MDTypography>
-                    </MDAlert>
-                  )}
-                  {loading && (
-                    <MDAlert color="info">
-                      <MDTypography variant="body2" color="white">
-                        Loading settings...
                       </MDTypography>
                     </MDAlert>
                   )}

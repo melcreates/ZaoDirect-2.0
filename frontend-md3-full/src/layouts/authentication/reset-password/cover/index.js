@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import Card from "@mui/material/Card";
+import Alert from "@mui/material/Alert";
 
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
 import MDButton from "components/MDButton";
-import MDAlert from "components/MDAlert";
 
 import CoverLayout from "layouts/authentication/components/CoverLayout";
 import AuthService from "services/auth-service";
@@ -24,6 +24,12 @@ function Cover() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const placeholderSx = (hasValue) => ({
+    "& input::placeholder": {
+      opacity: hasValue ? 0 : 1,
+      transition: "opacity 0.15s ease",
+    },
+  });
 
   const handleChange = ({ target: { name, value } }) => {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -91,18 +97,32 @@ function Cover() {
         </MDBox>
         <MDBox pt={4} pb={3} px={3}>
           {!!error && (
-            <MDAlert color="error" sx={{ mb: 2 }}>
-              <MDTypography variant="body2" color="white">
-                {error}
-              </MDTypography>
-            </MDAlert>
+            <Alert
+              severity="error"
+              variant="outlined"
+              sx={{
+                mb: 2,
+                borderRadius: 2,
+                backgroundColor: "rgba(244,67,54,0.06)",
+                "& .MuiAlert-message": { fontSize: "0.875rem", fontWeight: 500 },
+              }}
+            >
+              {error}
+            </Alert>
           )}
           {!!success && (
-            <MDAlert color="success" sx={{ mb: 2 }}>
-              <MDTypography variant="body2" color="white">
-                {success}
-              </MDTypography>
-            </MDAlert>
+            <Alert
+              severity="success"
+              variant="outlined"
+              sx={{
+                mb: 2,
+                borderRadius: 2,
+                backgroundColor: "rgba(76,175,80,0.08)",
+                "& .MuiAlert-message": { fontSize: "0.875rem", fontWeight: 500 },
+              }}
+            >
+              {success}
+            </Alert>
           )}
           <MDBox component="form" role="form" onSubmit={handleSubmit}>
             <MDBox mb={3}>
@@ -115,6 +135,7 @@ function Cover() {
                 fullWidth
                 value={form.email}
                 onChange={handleChange}
+                sx={placeholderSx(Boolean(form.email))}
               />
             </MDBox>
             <MDBox mb={3}>
@@ -127,6 +148,7 @@ function Cover() {
                 fullWidth
                 value={form.currentPassword}
                 onChange={handleChange}
+                sx={placeholderSx(Boolean(form.currentPassword))}
               />
             </MDBox>
             <MDBox mb={3}>
@@ -139,6 +161,7 @@ function Cover() {
                 fullWidth
                 value={form.newPassword}
                 onChange={handleChange}
+                sx={placeholderSx(Boolean(form.newPassword))}
               />
             </MDBox>
             <MDBox mb={2}>
@@ -151,6 +174,7 @@ function Cover() {
                 fullWidth
                 value={form.confirmPassword}
                 onChange={handleChange}
+                sx={placeholderSx(Boolean(form.confirmPassword))}
               />
             </MDBox>
 

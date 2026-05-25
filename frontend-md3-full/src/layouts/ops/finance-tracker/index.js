@@ -158,7 +158,7 @@ function FinanceTracker() {
     setError("");
     setNotice("");
     try {
-      await HttpService.patch(`/api/ops/payouts/${payoutId}/status`, { status: "PAID" });
+      await HttpService.patch(`/ops/payouts/${payoutId}/status`, { status: "PAID" });
       setNotice("Payout marked as paid and farmer order settled.");
       await loadAll();
     } catch (e) {
@@ -431,4 +431,5 @@ function FinanceTracker() {
 }
 
 export default FinanceTracker;
+
 

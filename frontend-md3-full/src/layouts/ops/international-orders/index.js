@@ -69,7 +69,7 @@ function InternationalOrders() {
     setError("");
     setStatusError("");
     try {
-      await HttpService.patch(`/api/ops/international-orders/${selectedOrder.id}/status`, { status: "CANCELLED" });
+      await HttpService.patch(`/ops/international-orders/${selectedOrder.id}/status`, { status: "CANCELLED" });
       const [refreshed, refreshedFpo] = await Promise.all([
         HttpService.get("/ops/international-orders"),
         HttpService.get("/ops/farmer-purchase-orders"),
@@ -256,4 +256,5 @@ function InternationalOrders() {
 }
 
 export default InternationalOrders;
+
 

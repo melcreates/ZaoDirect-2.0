@@ -33,33 +33,43 @@ MaterialUI.displayName = "MaterialUIContext";
 function reducer(state, action) {
   switch (action.type) {
     case "MINI_SIDENAV": {
+      if (state.miniSidenav === action.value) return state;
       return { ...state, miniSidenav: action.value };
     }
     case "TRANSPARENT_SIDENAV": {
+      if (state.transparentSidenav === action.value) return state;
       return { ...state, transparentSidenav: action.value };
     }
     case "WHITE_SIDENAV": {
+      if (state.whiteSidenav === action.value) return state;
       return { ...state, whiteSidenav: action.value };
     }
     case "SIDENAV_COLOR": {
+      if (state.sidenavColor === action.value) return state;
       return { ...state, sidenavColor: action.value };
     }
     case "TRANSPARENT_NAVBAR": {
+      if (state.transparentNavbar === action.value) return state;
       return { ...state, transparentNavbar: action.value };
     }
     case "FIXED_NAVBAR": {
+      if (state.fixedNavbar === action.value) return state;
       return { ...state, fixedNavbar: action.value };
     }
     case "OPEN_CONFIGURATOR": {
+      if (state.openConfigurator === action.value) return state;
       return { ...state, openConfigurator: action.value };
     }
     case "DIRECTION": {
+      if (state.direction === action.value) return state;
       return { ...state, direction: action.value };
     }
     case "LAYOUT": {
+      if (state.layout === action.value) return state;
       return { ...state, layout: action.value };
     }
     case "DARKMODE": {
+      if (state.darkMode === action.value) return state;
       return { ...state, darkMode: action.value };
     }
     default: {

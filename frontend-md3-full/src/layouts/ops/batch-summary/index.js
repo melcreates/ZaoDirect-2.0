@@ -25,9 +25,9 @@ function BatchSummary() {
       try {
         const [batches, batchItems, qualityChecks, shipmentEvents] = await Promise.all([
           HttpService.get("/ops/batches"),
-          HttpService.get(`/api/ops/batch-items?batchId=${id}`),
-          HttpService.get(`/api/ops/quality-checks?batchId=${id}`),
-          HttpService.get(`/api/ops/shipment-events?batchId=${id}`),
+          HttpService.get(`/ops/batch-items?batchId=${id}`),
+          HttpService.get(`/ops/quality-checks?batchId=${id}`),
+          HttpService.get(`/ops/shipment-events?batchId=${id}`),
         ]);
         if (!mounted) return;
         const found = (Array.isArray(batches) ? batches : []).find((b) => b.id === id) || null;
@@ -118,4 +118,5 @@ function BatchSummary() {
 }
 
 export default BatchSummary;
+
 

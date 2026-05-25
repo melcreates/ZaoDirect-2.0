@@ -57,7 +57,7 @@ function NewProduct() {
       .catch(() => setError("Unable to process selected photos."));
   };
 
-  const submit = async () => {
+  const submit = async (status = "PUBLISHED") => {
     try {
       setSaving(true);
       setError("");
@@ -71,10 +71,10 @@ function NewProduct() {
         county: form.county || null,
         availableFrom: form.availableFrom || null,
         photoUrls: Array.isArray(form.photoUrls) ? form.photoUrls : [],
-        status: "DRAFT",
+        status,
       };
       await HttpService.post("/listings", payload);
-      navigate("/ecommerce/products/product-page");
+      navigate(`/ecommerce/products/product-page?refresh=${Date.now()}`);
     } catch (e) {
       setError(e?.message || "Unable to create product.");
     } finally {
@@ -93,7 +93,7 @@ function NewProduct() {
                 Add New Product
               </MDTypography>
               <MDTypography variant="h6" fontWeight="regular" color="secondary">
-                Enter your produce details to create a draft listing.
+                Enter your produce details, then publish immediately or save as draft.
               </MDTypography>
             </MDBox>
             <Card>
@@ -164,9 +164,14 @@ function NewProduct() {
                   <MDButton variant="outlined" color="dark" onClick={() => navigate("/ecommerce/products/product-page")}>
                     Cancel
                   </MDButton>
-                  <MDButton variant="gradient" color="info" onClick={submit} disabled={saving}>
-                    {saving ? "Saving..." : "Save Product"}
-                  </MDButton>
+                  <MDBox display="flex" gap={1}>
+                    <MDButton variant="outlined" color="info" onClick={() => submit("DRAFT")} disabled={saving}>
+                      {saving ? "Saving..." : "Save Draft"}
+                    </MDButton>
+                    <MDButton variant="gradient" color="info" onClick={() => submit("PUBLISHED")} disabled={saving}>
+                      {saving ? "Publishing..." : "Publish Product"}
+                    </MDButton>
+                  </MDBox>
                 </MDBox>
               </MDBox>
             </Card>

@@ -58,6 +58,7 @@ function OrderList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [rows, setRows] = useState([]);
+  const [role, setRole] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -66,16 +67,17 @@ function OrderList() {
         setError("");
 
         const me = await AuthService.getProfile();
-        const role = String(me?.role || "").toUpperCase();
+        const currentRole = String(me?.role || "").toUpperCase();
+        setRole(currentRole);
 
         const data =
-          role === "ADMIN"
+          currentRole === "ADMIN"
             ? await HttpService.get("/ops/farmer-purchase-orders")
             : await HttpService.get("/ops/farmer-purchase-orders/mine");
 
         setRows(Array.isArray(data) ? data : []);
       } catch (e) {
-        setError(e?.message || "Unable to load orders.");
+        setError("Something went wrong. Please refresh.");
       } finally {
         setLoading(false);
       }
@@ -96,7 +98,7 @@ function OrderList() {
 
     return {
       columns: [
-        { Header: "order", accessor: "order", width: "14%" },
+        ...(role === "ADMIN" ? [{ Header: "order", accessor: "order", width: "14%" }] : []),
         { Header: "customer", accessor: "customer", width: "18%" },
         { Header: "crop", accessor: "crop", width: "16%" },
         { Header: "quantity", accessor: "quantity", align: "center", width: "10%" },
@@ -123,7 +125,9 @@ function OrderList() {
         const paymentStatus = formatStatus(order?.payment_status || "UNPAID");
 
         return {
-          order: clickable(<IdCell id={String(orderId).slice(0, 12)} checked={false} />, orderId),
+          ...(role === "ADMIN"
+            ? { order: clickable(<IdCell id={String(orderId).slice(0, 12)} checked={false} />, orderId) }
+            : {}),
           customer: clickable(
             <CustomerCell name="ZaoDirect" image={zaodirectLogo} color="info" />,
             orderId
@@ -151,7 +155,7 @@ function OrderList() {
         };
       }),
     };
-  }, [navigate, rows]);
+  }, [navigate, role, rows]);
 
   return (
     <DashboardLayout>
@@ -188,13 +192,7 @@ function OrderList() {
                 />
               </Grid>
             </Grid>
-            {loading && (
-              <MDBox px={2} pb={1}>
-                <MDTypography variant="button" color="text">
-                  Loading orders...
-                </MDTypography>
-              </MDBox>
-            )}
+            {loading && <MDBox minHeight="6rem" />}
           </MDBox>
         </Card>
       </MDBox>

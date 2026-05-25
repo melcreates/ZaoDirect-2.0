@@ -14,6 +14,7 @@ Coded by www.creative-tim.com
 */
 
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 // @mui material components
 import Grid from "@mui/material/Grid";
@@ -44,6 +45,11 @@ import AuthService from "services/auth-service";
 import booking1 from "assets/images/products/product-1-min.jpg";
 import booking2 from "assets/images/products/product-2-min.jpg";
 import booking3 from "assets/images/products/product-3-min.jpg";
+import US from "assets/images/icons/flags/US.png";
+import DE from "assets/images/icons/flags/DE.png";
+import GB from "assets/images/icons/flags/GB.png";
+import BR from "assets/images/icons/flags/BR.png";
+import AU from "assets/images/icons/flags/AU.png";
 
 function startOfWeek(date) {
   const d = new Date(date);
@@ -76,12 +82,14 @@ function getListingCardImage(listing, fallbackIndex) {
 }
 
 function Analytics() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [role, setRole] = useState("");
   const [listings, setListings] = useState([]);
   const [procurements, setProcurements] = useState([]);
   const [batches, setBatches] = useState([]);
+  const [intlOrders, setIntlOrders] = useState([]);
 
   useEffect(() => {
     const load = async () => {
@@ -93,18 +101,22 @@ function Analytics() {
         setRole(currentRole);
 
         if (currentRole === "ADMIN") {
-          const [listingRows, procurementRows, batchRows] = await Promise.all([
-            HttpService.get("/listings"),
-            HttpService.get("/ops/farmer-purchase-orders"),
-            HttpService.get("/ops/batches"),
+          const ts = Date.now();
+          const [listingRows, procurementRows, batchRows, intlRows] = await Promise.all([
+            HttpService.get(`/listings?ts=${ts}`),
+            HttpService.get(`/ops/farmer-purchase-orders?ts=${ts}`),
+            HttpService.get(`/ops/batches?ts=${ts}`),
+            HttpService.get(`/ops/international-orders?ts=${ts}`),
           ]);
           setListings(Array.isArray(listingRows) ? listingRows : []);
           setProcurements(Array.isArray(procurementRows) ? procurementRows : []);
           setBatches(Array.isArray(batchRows) ? batchRows : []);
+          setIntlOrders(Array.isArray(intlRows) ? intlRows : []);
         } else {
+          const ts = Date.now();
           const [listingRows, mineOrders] = await Promise.all([
-            HttpService.get("/listings"),
-            HttpService.get("/ops/farmer-purchase-orders/mine"),
+            HttpService.get(`/listings?ts=${ts}`),
+            HttpService.get(`/ops/farmer-purchase-orders/mine?ts=${ts}`),
           ]);
           const myId = me?.id;
           const allListings = Array.isArray(listingRows) ? listingRows : [];
@@ -115,15 +127,64 @@ function Analytics() {
           setListings(myListings);
           setProcurements(Array.isArray(mineOrders) ? mineOrders : []);
           setBatches([]);
+          setIntlOrders([]);
         }
       } catch (e) {
-        setError(e?.message || "Unable to load operations overview.");
+        setError("Something went wrong. Please refresh.");
       } finally {
         setLoading(false);
       }
     };
     load();
   }, []);
+
+  const destinationRows = useMemo(() => {
+    if (role !== "ADMIN") return [];
+
+    const flagByCountry = {
+      germany: DE,
+      "united kingdom": GB,
+      uk: GB,
+      "united states": US,
+      usa: US,
+      netherlands: US,
+      brazil: BR,
+      australia: AU,
+    };
+
+    const grouped = new Map();
+    intlOrders.forEach((order) => {
+      const rawCountry = String(order?.buyer_country || order?.destination_country || "").trim();
+      if (!rawCountry) return;
+      const key = rawCountry.toLowerCase();
+      if (!grouped.has(key)) {
+        grouped.set(key, { country: rawCountry, sales: 0, value: 0, total: 0, dropped: 0 });
+      }
+      const bucket = grouped.get(key);
+      bucket.sales += 1;
+      bucket.total += 1;
+      const qty = Number(order?.shipped_quantity || order?.required_quantity || 0);
+      const price = Number(order?.target_price || 0);
+      bucket.value += qty * price;
+      const status = String(order?.status || "").toUpperCase();
+      if (["CANCELLED", "DISPUTED", "REJECTED"].includes(status)) bucket.dropped += 1;
+    });
+
+    return Array.from(grouped.values())
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8)
+      .map((row) => {
+        const key = row.country.toLowerCase();
+        const flag = flagByCountry[key] || US;
+        const bouncePct = row.total > 0 ? (row.dropped / row.total) * 100 : 0;
+        return {
+          country: [flag, row.country],
+          sales: row.sales,
+          value: `$${Number(row.value || 0).toLocaleString()}`,
+          bounce: `${bouncePct.toFixed(1)}%`,
+        };
+      });
+  }, [intlOrders, role]);
 
   const kpis = useMemo(() => {
     const now = new Date();
@@ -150,14 +211,29 @@ function Analytics() {
     const readyForPickup = procurements.filter(
       (o) => String(o?.status || "").toUpperCase() === "READY_FOR_PICKUP"
     );
-    const pickupToday = readyForPickup.filter((o) => o?.updated_at && dateKey(o.updated_at) === today).length;
-    const pickupYesterday = readyForPickup.filter(
-      (o) => o?.updated_at && dateKey(o.updated_at) === yesterday
-    ).length;
+
+    const pickedOrders = procurements.filter((o) => {
+      const shipment = String(o?.shipment_progress || "").toUpperCase();
+      const status = String(o?.status || "").toUpperCase();
+      return ["PICKED_UP", "IN_TRANSIT", "DELIVERED", "SHIPPED", "PARTIALLY_SHIPPED"].includes(shipment) ||
+        ["PICKED_UP", "SETTLED"].includes(status);
+    });
+    const pickedTodayKg = pickedOrders
+      .filter((o) => (o?.updated_at || o?.created_at) && dateKey(o?.updated_at || o?.created_at) === today)
+      .reduce((sum, o) => sum + Number(o?.actual_picked_quantity || o?.picked_quantity || o?.accepted_quantity || 0), 0);
+    const pickedAllTimeKg = pickedOrders.reduce(
+      (sum, o) => sum + Number(o?.actual_picked_quantity || o?.picked_quantity || o?.accepted_quantity || 0),
+      0
+    );
+    const pickedYesterdayKg = pickedOrders
+      .filter((o) => (o?.updated_at || o?.created_at) && dateKey(o?.updated_at || o?.created_at) === yesterday)
+      .reduce((sum, o) => sum + Number(o?.actual_picked_quantity || o?.picked_quantity || o?.accepted_quantity || 0), 0);
     const pickupDeltaPct =
-      pickupYesterday === 0 ? (pickupToday > 0 ? 100 : 0) : ((pickupToday - pickupYesterday) / pickupYesterday) * 100;
-    const pickupByDay = last7Keys.map(
-      (key) => readyForPickup.filter((o) => o?.updated_at && dateKey(o.updated_at) === key).length
+      pickedYesterdayKg === 0 ? (pickedTodayKg > 0 ? 100 : 0) : ((pickedTodayKg - pickedYesterdayKg) / pickedYesterdayKg) * 100;
+    const pickupByDay = last7Keys.map((key) =>
+      pickedOrders
+        .filter((o) => (o?.updated_at || o?.created_at) && dateKey(o?.updated_at || o?.created_at) === key)
+        .reduce((sum, o) => sum + Number(o?.actual_picked_quantity || o?.picked_quantity || o?.accepted_quantity || 0), 0)
     );
 
     let executionProgressPct = 0;
@@ -196,9 +272,11 @@ function Analytics() {
         datasets: { label: "Listings", data: publishedByDay },
       },
       pickupDeltaText: `${pickupDeltaPct >= 0 ? "+" : ""}${Math.round(pickupDeltaPct)}%`,
+      pickupTodayKg: Math.round(pickedTodayKg),
+      pickupAllTimeKg: Math.round(pickedAllTimeKg),
       pickupChart: {
         labels: ["M", "T", "W", "T", "F", "S", "S"],
-        datasets: { label: "Pickups", data: pickupByDay },
+        datasets: { label: role === "ADMIN" ? "Pickups" : "Kg picked", data: pickupByDay },
       },
       shippedProgressText: `${executionProgressPct}%`,
       shippedChart: {
@@ -220,6 +298,7 @@ function Analytics() {
       .slice(0, 6);
 
     return rows.map((listing, idx) => ({
+      id: listing?.id,
       image: getListingCardImage(listing, idx),
       title: listing?.title || listing?.name || listing?.crop_type || "Produce Listing",
       description:
@@ -234,8 +313,7 @@ function Analytics() {
     }));
   }, [listings]);
 
-  // Action buttons for the BookingCard
-  const actionButtons = (
+  const renderActionButtons = (listingId) => (
     <>
       <Tooltip title="Refresh" placement="bottom">
         <MDTypography
@@ -252,7 +330,11 @@ function Analytics() {
           variant="body1"
           color="info"
           lineHeight={1}
-          sx={{ cursor: "pointer", mx: 3 }}
+          sx={{ cursor: listingId ? "pointer" : "not-allowed", mx: 3, opacity: listingId ? 1 : 0.5 }}
+          onClick={() => {
+            if (!listingId) return;
+            navigate(`/ecommerce/products/edit-product?id=${encodeURIComponent(listingId)}`);
+          }}
         >
           <Icon color="inherit">edit</Icon>
         </MDTypography>
@@ -283,6 +365,8 @@ function Analytics() {
             </MDTypography>
           </MDAlert>
         )}
+        {!loading && (
+          <>
         <MDBox>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6} lg={4}>
@@ -291,7 +375,7 @@ function Analytics() {
                   color="success"
                   title="produce listings"
                   description={`Published listings this week: ${kpis.publishedCount}`}
-                  date={loading ? "loading..." : "updated just now"}
+                  date="updated just now"
                   chart={kpis.publishedChart}
                 />
               </MDBox>
@@ -302,11 +386,18 @@ function Analytics() {
                   color="success"
                   title="daily pickups"
                   description={
-                    <>
-                      (<strong>{kpis.pickupDeltaText}</strong>) pickup confirmations vs yesterday.
-                    </>
+                    role === "ADMIN" ? (
+                      <>
+                        (<strong>{kpis.pickupDeltaText}</strong>) pickup confirmations vs yesterday.
+                      </>
+                    ) : (
+                      <>
+                        Total kgs picked all-time:{" "}
+                        <strong>{Number(kpis.pickupAllTimeKg || 0).toLocaleString()} kg</strong>
+                      </>
+                    )
                   }
-                  date={loading ? "loading..." : "updated just now"}
+                  date="updated just now"
                   chart={kpis.pickupChart}
                 />
               </MDBox>
@@ -317,7 +408,7 @@ function Analytics() {
                   color="success"
                   title="shipped batches"
                   description={`Execution progress: ${kpis.shippedProgressText}`}
-                  date={loading ? "loading..." : "updated just now"}
+                  date="updated just now"
                   chart={kpis.shippedChart}
                 />
               </MDBox>
@@ -395,7 +486,7 @@ function Analytics() {
                     description={card.description}
                     price={card.price}
                     location={card.location}
-                    action={actionButtons}
+                    action={renderActionButtons(card.id)}
                   />
                 </MDBox>
               </Grid>
@@ -415,8 +506,10 @@ function Analytics() {
         </MDBox>
         {role === "ADMIN" && (
           <Grid container mt={3}>
-            <SalesByCountry />
+            <SalesByCountry rows={destinationRows} />
           </Grid>
+        )}
+          </>
         )}
       </MDBox>
       <Footer />

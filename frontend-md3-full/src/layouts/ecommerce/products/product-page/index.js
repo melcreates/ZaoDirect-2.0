@@ -4,6 +4,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Card from "@mui/material/Card";
 import Grid from "@mui/material/Grid";
 import Icon from "@mui/material/Icon";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
@@ -32,17 +36,20 @@ function ProductPage() {
   const selectedId = new URLSearchParams(location.search).get("id");
 
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [selected, setSelected] = useState(null);
   const [deletingId, setDeletingId] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState("");
 
   useEffect(() => {
     const load = async () => {
       try {
+        setLoading(true);
         setError("");
         const me = await AuthService.getProfile();
         const role = String(me?.role || "").toUpperCase();
-        const listingRows = await HttpService.get("/listings");
+        const listingRows = await HttpService.get(`/listings?ts=${Date.now()}`);
         const all = Array.isArray(listingRows) ? listingRows : [];
         const farmerOwned = all.filter((item) => {
           const ownerRole = String(item?.owner_role || item?.ownerRole || item?.role || "").toUpperCase();
@@ -62,29 +69,34 @@ function ProductPage() {
           setSelected(null);
         }
       } catch (e) {
-        setError(e?.message || "Unable to load product list.");
+        setError("Something went wrong. Please refresh.");
+      } finally {
+        setLoading(false);
       }
     };
     load();
-  }, [selectedId]);
+  }, [selectedId, location.search]);
 
   const handleDelete = async (event, listingId) => {
     event.stopPropagation();
-    const yes = window.confirm("Delete this product listing?");
-    if (!yes) return;
+    setConfirmDeleteId(String(listingId));
+  };
 
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      setDeletingId(String(listingId));
+      setDeletingId(String(confirmDeleteId));
       setError("");
-      await HttpService.delete(`/listings/${encodeURIComponent(listingId)}`);
-      setRows((prev) => prev.filter((x) => String(x?.id) !== String(listingId)));
-      if (String(selectedId || "") === String(listingId)) {
+      await HttpService.delete(`/listings/${encodeURIComponent(confirmDeleteId)}`);
+      setRows((prev) => prev.filter((x) => String(x?.id) !== String(confirmDeleteId)));
+      if (String(selectedId || "") === String(confirmDeleteId)) {
         navigate("/ecommerce/products/product-page");
       }
     } catch (e) {
       setError(e?.message || "Unable to delete listing.");
     } finally {
       setDeletingId("");
+      setConfirmDeleteId("");
     }
   };
 
@@ -208,7 +220,11 @@ function ProductPage() {
 
             {!selected && (
               <MDBox mb={1}>
-                <DataTable table={tableData} entriesPerPage={false} showTotalEntries={false} isSorted={false} />
+                {loading ? (
+                  <MDBox minHeight="8rem" />
+                ) : (
+                  <DataTable table={tableData} entriesPerPage={false} showTotalEntries={false} isSorted={false} />
+                )}
               </MDBox>
             )}
 
@@ -252,6 +268,22 @@ function ProductPage() {
         </Card>
       </MDBox>
       <Footer />
+      <Dialog open={Boolean(confirmDeleteId)} onClose={() => setConfirmDeleteId("")} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete Product</DialogTitle>
+        <DialogContent>
+          <MDTypography variant="button" color="text">
+            Are you sure you want to delete this product listing?
+          </MDTypography>
+        </DialogContent>
+        <DialogActions>
+          <MDButton variant="text" color="dark" onClick={() => setConfirmDeleteId("")}>
+            Cancel
+          </MDButton>
+          <MDButton variant="gradient" color="error" onClick={confirmDelete} disabled={Boolean(deletingId)}>
+            {deletingId ? "Deleting..." : "Delete"}
+          </MDButton>
+        </DialogActions>
+      </Dialog>
     </DashboardLayout>
   );
 }

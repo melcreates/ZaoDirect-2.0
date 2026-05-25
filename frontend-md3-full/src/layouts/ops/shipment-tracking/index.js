@@ -4,10 +4,15 @@ import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
-import DataTable from "examples/Tables/DataTable";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
@@ -38,7 +43,7 @@ function ShipmentTracking() {
   };
 
   const loadEvents = async (batchId = "") => {
-    const path = batchId ? `/api/ops/shipment-events?batchId=${batchId}` : "/ops/shipment-events";
+    const path = batchId ? `/ops/shipment-events?batchId=${batchId}` : "/ops/shipment-events";
     const data = await HttpService.get(path);
     setEvents(Array.isArray(data) ? data : []);
   };
@@ -128,25 +133,19 @@ function ShipmentTracking() {
     URL.revokeObjectURL(url);
   };
 
-  const table = useMemo(() => {
-    const columns = [
-      { Header: "batch", accessor: "batch", align: "left" },
-      { Header: "buyer", accessor: "buyer", align: "left" },
-      { Header: "milestone", accessor: "milestone", align: "left" },
-      { Header: "event time", accessor: "eventTime", align: "left" },
-      { Header: "location", accessor: "location", align: "left" },
-      { Header: "notes", accessor: "notes", align: "left" },
-    ];
-    const rows = events.map((ev) => ({
-      batch: ev.batch_code || "-",
-      buyer: ev.buyer_name || "-",
-      milestone: toStatusLabel(ev.milestone),
-      eventTime: ev.event_time ? new Date(ev.event_time).toLocaleString() : "-",
-      location: ev.location || "-",
-      notes: ev.notes || "-",
-    }));
-    return { columns, rows };
-  }, [events]);
+  const timelineRows = useMemo(
+    () =>
+      events.map((ev) => ({
+        id: ev.id || `${ev.batch_code}-${ev.event_time}-${ev.milestone}`,
+        batch: ev.batch_code || "-",
+        buyer: ev.buyer_name || "-",
+        milestone: toStatusLabel(ev.milestone),
+        eventTime: ev.event_time ? new Date(ev.event_time).toLocaleString() : "-",
+        location: ev.location || "-",
+        notes: ev.notes || "-",
+      })),
+    [events]
+  );
 
   return (
     <DashboardLayout>
@@ -283,7 +282,42 @@ function ShipmentTracking() {
               <MDTypography variant="h6">Shipment Timeline</MDTypography>
             </MDBox>
             <Divider />
-            <DataTable table={table} showTotalEntries={false} isSorted={false} noEndBorder entriesPerPage={false} />
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Batch</TableCell>
+                    <TableCell>Buyer</TableCell>
+                    <TableCell>Milestone</TableCell>
+                    <TableCell>Event Time</TableCell>
+                    <TableCell>Location</TableCell>
+                    <TableCell>Notes</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {timelineRows.length ? (
+                    timelineRows.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>{row.batch}</TableCell>
+                        <TableCell>{row.buyer}</TableCell>
+                        <TableCell>{row.milestone}</TableCell>
+                        <TableCell>{row.eventTime}</TableCell>
+                        <TableCell>{row.location}</TableCell>
+                        <TableCell>{row.notes}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6}>
+                        <MDTypography variant="button" color="text">
+                          No shipment events yet.
+                        </MDTypography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Card>
         </MDBox>
       </MDBox>
@@ -293,4 +327,5 @@ function ShipmentTracking() {
 }
 
 export default ShipmentTracking;
+
 

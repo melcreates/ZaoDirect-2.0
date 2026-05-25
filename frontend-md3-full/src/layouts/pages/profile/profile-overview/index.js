@@ -43,7 +43,8 @@ function normalizeStatus(status) {
   return `${value.charAt(0).toUpperCase()}${value.slice(1).replace(/_/g, " ")}`;
 }
 
-function getListingPhoto(listing, index) {
+function getListingPhoto(listing, index, loading) {
+  if (loading) return "";
   const photos = Array.isArray(listing?.photo_urls) ? listing.photo_urls : [];
   return photos[0] || fallbackProjectImages[index % fallbackProjectImages.length];
 }
@@ -129,7 +130,7 @@ function Overview() {
           setConversations([]);
         }
       } catch (err) {
-        setError(err?.message || "Unable to load profile overview.");
+        setError("Something went wrong. Please refresh.");
       } finally {
         setLoading(false);
       }
@@ -141,7 +142,7 @@ function Overview() {
   const projectCards = useMemo(
     () =>
       listings.slice(0, 8).map((listing, index) => ({
-        image: getListingPhoto(listing, index),
+        image: getListingPhoto(listing, index, loading),
         label: (listing?.status || "draft").toLowerCase(),
         title: listing?.title || listing?.name || listing?.crop_type || "Produce Listing",
         description:
@@ -158,7 +159,7 @@ function Overview() {
           { image: "", name: "ZaoDirect QA" },
         ],
       })),
-    [listings, displayName]
+    [listings, displayName, loading]
   );
 
   const infoCardData = useMemo(
@@ -199,7 +200,7 @@ function Overview() {
               <Divider orientation="vertical" sx={{ ml: -2, mr: 1 }} />
               <ProfileInfoCard
                 title="profile information"
-                description={loading ? "Loading profile..." : "Your account profile and contact information."}
+                description="Your account profile and contact information."
                 info={infoCardData}
                 social={[]}
                 action={{ route: "/pages/account/settings", tooltip: "Edit in Settings" }}

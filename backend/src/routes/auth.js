@@ -22,6 +22,7 @@ const signupSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
+  rememberMe: z.boolean().optional(),
 });
 const forgotPasswordSchema = z.object({
   email: z.string().email(),
@@ -282,7 +283,7 @@ router.post("/signup", async (req, res, next) => {
       return { user: userInsert.rows[0], farmerProfile };
     });
 
-    const token = signToken(created.user);
+    const token = signToken(created.user, { rememberMe: false });
     await ensureNotificationSettingsRow(created.user.id);
     await createUserSession(req, created.user.id);
     return res.status(201).json({
@@ -330,7 +331,7 @@ router.post("/login", async (req, res, next) => {
     );
 
     const assets = await getUserAssets(user.id);
-    const token = signToken(user);
+    const token = signToken(user, { rememberMe: Boolean(data.rememberMe) });
     await ensureNotificationSettingsRow(user.id);
     await createUserSession(req, user.id);
     return res.json({
@@ -546,7 +547,7 @@ router.post("/google", async (req, res, next) => {
       });
 
       const assets = await getUserAssets(created.user.id);
-      const token = signToken(created.user);
+      const token = signToken(created.user, { rememberMe: false });
       await ensureNotificationSettingsRow(created.user.id);
       await createUserSession(req, created.user.id);
       return res.json({
@@ -567,7 +568,7 @@ router.post("/google", async (req, res, next) => {
       [user.id]
     );
     const assets = await getUserAssets(user.id);
-    const token = signToken(user);
+    const token = signToken(user, { rememberMe: false });
     await ensureNotificationSettingsRow(user.id);
     await createUserSession(req, user.id);
     return res.json({

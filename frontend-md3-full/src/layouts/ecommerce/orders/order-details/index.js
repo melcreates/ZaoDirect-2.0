@@ -5,6 +5,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import Divider from "@mui/material/Divider";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 
 // Material Dashboard 3 PRO React components
 import MDBox from "components/MDBox";
@@ -52,6 +56,7 @@ function OrderDetails() {
   const [success, setSuccess] = useState("");
   const [role, setRole] = useState("");
   const [order, setOrder] = useState(null);
+  const [confirmAction, setConfirmAction] = useState("");
 
   const canAccept = useMemo(() => {
     const status = String(order?.status || "").toUpperCase();
@@ -89,7 +94,7 @@ function OrderDetails() {
 
       setOrder(found);
     } catch (e) {
-      setError(e?.message || "Unable to load order details.");
+      setError("Something went wrong. Please refresh.");
     } finally {
       setLoading(false);
     }
@@ -105,9 +110,10 @@ function OrderDetails() {
   }, [orderId]);
 
   const handleAccept = async () => {
-    const ok = window.confirm("Are you sure you want to accept this order?");
-    if (!ok) return;
+    setConfirmAction("accept");
+  };
 
+  const doAccept = async () => {
     try {
       setSubmitting(true);
       setError("");
@@ -123,13 +129,15 @@ function OrderDetails() {
       setError(e?.message || "Unable to accept this order.");
     } finally {
       setSubmitting(false);
+      setConfirmAction("");
     }
   };
 
   const handleMarkReady = async () => {
-    const ok = window.confirm("Are you sure this produce is ready for pickup?");
-    if (!ok) return;
+    setConfirmAction("ready");
+  };
 
+  const doMarkReady = async () => {
     try {
       setSubmitting(true);
       setError("");
@@ -145,6 +153,7 @@ function OrderDetails() {
       setError(e?.message || "Unable to mark order as ready.");
     } finally {
       setSubmitting(false);
+      setConfirmAction("");
     }
   };
 
@@ -207,11 +216,7 @@ function OrderDetails() {
               <Divider />
 
               <MDBox pt={1} pb={3} px={2}>
-                {loading ? (
-                  <MDTypography variant="button" color="text">
-                    Loading order details...
-                  </MDTypography>
-                ) : order ? (
+                {!loading && order ? (
                   <>
                     <MDBox mb={3}>
                       <Grid container spacing={3} alignItems="center">
@@ -312,13 +317,38 @@ function OrderDetails() {
                       </Grid>
                     </MDBox>
                   </>
-                ) : null}
+                ) : <MDBox minHeight="10rem" />}
               </MDBox>
             </Card>
           </Grid>
         </Grid>
       </MDBox>
       <Footer />
+      <Dialog open={Boolean(confirmAction)} onClose={() => setConfirmAction("")} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          {confirmAction === "accept" ? "Accept Order" : "Mark Ready For Pickup"}
+        </DialogTitle>
+        <DialogContent>
+          <MDTypography variant="button" color="text">
+            {confirmAction === "accept"
+              ? "Are you sure you want to accept this order?"
+              : "Are you sure this produce is ready for pickup?"}
+          </MDTypography>
+        </DialogContent>
+        <DialogActions>
+          <MDButton variant="text" color="dark" onClick={() => setConfirmAction("")}>
+            Cancel
+          </MDButton>
+          <MDButton
+            variant="gradient"
+            color="info"
+            onClick={confirmAction === "accept" ? doAccept : doMarkReady}
+            disabled={submitting}
+          >
+            {submitting ? "Processing..." : "Confirm"}
+          </MDButton>
+        </DialogActions>
+      </Dialog>
     </DashboardLayout>
   );
 }

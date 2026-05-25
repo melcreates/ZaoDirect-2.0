@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Card from "@mui/material/Card";
 import Divider from "@mui/material/Divider";
@@ -41,7 +41,7 @@ function BatchQuality() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
-  const [autoOpenedBatchId, setAutoOpenedBatchId] = useState("");
+  const autoOpenedBatchIdRef = useRef("");
   const [batchStatus, setBatchStatus] = useState("CREATED");
   const [qualityForm, setQualityForm] = useState({
     stage: "AGGREGATION",
@@ -90,16 +90,7 @@ function BatchQuality() {
     };
   }, []);
 
-  useEffect(() => {
-    const queryBatchId = searchParams.get("batchId");
-    if (!queryBatchId || !batches.length || autoOpenedBatchId === queryBatchId) return;
-    const targetBatch = batches.find((batch) => String(batch.id) === String(queryBatchId));
-    if (!targetBatch) return;
-    openBatch(targetBatch);
-    setAutoOpenedBatchId(queryBatchId);
-  }, [searchParams, batches, autoOpenedBatchId]);
-
-  const openBatch = async (batch) => {
+  const openBatch = useCallback(async (batch) => {
     try {
       setError("");
       setSuccess("");
@@ -107,9 +98,9 @@ function BatchQuality() {
       setBatchStatus(batch.status || "CREATED");
       setDialogOpen(true);
       const [items, checks, lots] = await Promise.all([
-        HttpService.get(`/api/ops/batch-items?batchId=${batch.id}`),
-        HttpService.get(`/api/ops/quality-checks?batchId=${batch.id}`),
-        HttpService.get(`/api/ops/batch-shipment-lots?batchId=${batch.id}`),
+        HttpService.get(`/ops/batch-items?batchId=${batch.id}`),
+        HttpService.get(`/ops/quality-checks?batchId=${batch.id}`),
+        HttpService.get(`/ops/batch-shipment-lots?batchId=${batch.id}`),
       ]);
       setBatchItems(Array.isArray(items) ? items : []);
       setQualityChecks(Array.isArray(checks) ? checks : []);
@@ -117,7 +108,17 @@ function BatchQuality() {
     } catch (e) {
       setError(e?.message || "Failed to open batch details.");
     }
-  };
+  }, []);
+
+  const queryBatchId = useMemo(() => searchParams.get("batchId") || "", [searchParams]);
+
+  useEffect(() => {
+    if (!queryBatchId || !batches.length || autoOpenedBatchIdRef.current === queryBatchId) return;
+    const targetBatch = batches.find((batch) => String(batch.id) === String(queryBatchId));
+    if (!targetBatch) return;
+    autoOpenedBatchIdRef.current = queryBatchId;
+    openBatch(targetBatch);
+  }, [queryBatchId, batches, openBatch]);
 
   const dispatchBatch = async () => {
     if (!selectedBatch) return;
@@ -132,9 +133,9 @@ function BatchQuality() {
         return;
       }
       if (batchStatus !== "QA_PASSED") {
-        await HttpService.patch(`/api/ops/batches/${selectedBatch.id}/status`, { status: "QA_PASSED" });
+        await HttpService.patch(`/ops/batches/${selectedBatch.id}/status`, { status: "QA_PASSED" });
       }
-      await HttpService.patch(`/api/ops/batches/${selectedBatch.id}/status`, { status: "DISPATCHED" });
+      await HttpService.patch(`/ops/batches/${selectedBatch.id}/status`, { status: "DISPATCHED" });
       await loadBatches();
       setBatchStatus("DISPATCHED");
       setSelectedBatch((prev) => (prev ? { ...prev, status: "DISPATCHED" } : prev));
@@ -152,7 +153,7 @@ function BatchQuality() {
     setError("");
     setSuccess("");
     try {
-      await HttpService.patch(`/api/ops/batches/${selectedBatch.id}/status`, { status: "SHIPPED" });
+      await HttpService.patch(`/ops/batches/${selectedBatch.id}/status`, { status: "SHIPPED" });
       await loadBatches();
       setBatchStatus("SHIPPED");
       setSelectedBatch((prev) => (prev ? { ...prev, status: "SHIPPED" } : prev));
@@ -170,7 +171,7 @@ function BatchQuality() {
     setError("");
     setSuccess("");
     try {
-      await HttpService.patch(`/api/ops/batches/${selectedBatch.id}/status`, { status: "DELIVERED" });
+      await HttpService.patch(`/ops/batches/${selectedBatch.id}/status`, { status: "DELIVERED" });
       await loadBatches();
       setBatchStatus("DELIVERED");
       setSelectedBatch((prev) => (prev ? { ...prev, status: "DELIVERED" } : prev));
@@ -203,21 +204,21 @@ function BatchQuality() {
         const rejectedQty =
           qualityForm.hasRejection === "true" ? Number(qualityForm.rejectedQuantity || 0) : 0;
         const adjustedAccepted = Math.max(currentAccepted - rejectedQty, 0);
-        await HttpService.patch(`/api/ops/batch-items/${qualityForm.batchItemId}`, {
+        await HttpService.patch(`/ops/batch-items/${qualityForm.batchItemId}`, {
           actualPickedQuantity: adjustedAccepted,
           rejectedQuantity: rejectedQty,
           acceptedQuantity: adjustedAccepted,
           gradeResult: qualityForm.gradeResult || undefined,
         });
         if (selectedAllocation?.farmer_purchase_order_id) {
-          await HttpService.patch(`/api/ops/farmer-purchase-orders/${selectedAllocation.farmer_purchase_order_id}`, {
+          await HttpService.patch(`/ops/farmer-purchase-orders/${selectedAllocation.farmer_purchase_order_id}`, {
             actualPickedQuantity: adjustedAccepted,
             status: "PICKED_UP",
           });
         }
       }
-      const checks = await HttpService.get(`/api/ops/quality-checks?batchId=${selectedBatch.id}`);
-      const items = await HttpService.get(`/api/ops/batch-items?batchId=${selectedBatch.id}`);
+      const checks = await HttpService.get(`/ops/quality-checks?batchId=${selectedBatch.id}`);
+      const items = await HttpService.get(`/ops/batch-items?batchId=${selectedBatch.id}`);
       setQualityChecks(Array.isArray(checks) ? checks : []);
       setBatchItems(Array.isArray(items) ? items : []);
 
@@ -228,7 +229,7 @@ function BatchQuality() {
       );
       const targetQty = Number(selectedBatch?.total_quantity || 0);
       if (targetQty > 0 && refreshedAcceptedTotal >= targetQty && batchStatus === "COLLECTING") {
-        await HttpService.patch(`/api/ops/batches/${selectedBatch.id}/status`, { status: "QA_PASSED" });
+        await HttpService.patch(`/ops/batches/${selectedBatch.id}/status`, { status: "QA_PASSED" });
         setBatchStatus("QA_PASSED");
         setSelectedBatch((prev) => (prev ? { ...prev, status: "QA_PASSED" } : prev));
       }
@@ -300,7 +301,7 @@ function BatchQuality() {
         eta: lotForm.eta || undefined,
         notes: lotForm.notes || undefined,
       });
-      const lots = await HttpService.get(`/api/ops/batch-shipment-lots?batchId=${selectedBatch.id}`);
+      const lots = await HttpService.get(`/ops/batch-shipment-lots?batchId=${selectedBatch.id}`);
       setShipmentLots(Array.isArray(lots) ? lots : []);
       setLotForm({
         quantity: "",
@@ -326,9 +327,9 @@ function BatchQuality() {
     setError("");
     setSuccess("");
     try {
-      await HttpService.patch(`/api/ops/batch-shipment-lots/${lotId}/status`, { status });
+      await HttpService.patch(`/ops/batch-shipment-lots/${lotId}/status`, { status });
       const [lots, batchData] = await Promise.all([
-        HttpService.get(`/api/ops/batch-shipment-lots?batchId=${selectedBatch.id}`),
+        HttpService.get(`/ops/batch-shipment-lots?batchId=${selectedBatch.id}`),
         HttpService.get("/ops/batches"),
       ]);
       setShipmentLots(Array.isArray(lots) ? lots : []);
@@ -745,4 +746,5 @@ function BatchQuality() {
 }
 
 export default BatchQuality;
+
 

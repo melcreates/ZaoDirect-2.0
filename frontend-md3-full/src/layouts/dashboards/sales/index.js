@@ -88,7 +88,7 @@ function Sales() {
           setFarmerOrders(Array.isArray(myOrders) ? myOrders : []);
         }
       } catch (e) {
-        setError(e?.message || "Unable to load trade and finance dashboard.");
+        setError("Something went wrong. Please refresh.");
       } finally {
         setLoading(false);
       }
@@ -283,7 +283,8 @@ function Sales() {
             </MDTypography>
           </MDAlert>
         )}
-
+        {!loading && (
+          <>
         <Grid container spacing={3}>
           <Grid item xs={12} md={4} sx={{ display: "flex" }}>
             <MDBox width="100%" sx={{ "& > *": { height: "100%" } }}>
@@ -451,6 +452,8 @@ function Sales() {
             </Grid>
           </Grid>
         </MDBox>
+          </>
+        )}
       </MDBox>
       <Footer />
     </DashboardLayout>

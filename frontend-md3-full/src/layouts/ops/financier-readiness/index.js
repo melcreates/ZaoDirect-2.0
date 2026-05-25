@@ -223,7 +223,7 @@ function FinancierReadiness() {
   const exportAudit30d = async () => {
     const from = new Date();
     from.setDate(from.getDate() - 30);
-    const audits = await HttpService.get(`/api/ops/audit-events?from=${encodeURIComponent(from.toISOString())}&limit=1000`);
+    const audits = await HttpService.get(`/ops/audit-events?from=${encodeURIComponent(from.toISOString())}&limit=1000`);
     const list = Array.isArray(audits) ? audits : [];
     const rows = list.map((a) => [
       a.created_at ? new Date(a.created_at).toISOString() : "",
@@ -375,4 +375,5 @@ function FinancierReadiness() {
 }
 
 export default FinancierReadiness;
+
 

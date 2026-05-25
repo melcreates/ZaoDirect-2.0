@@ -90,15 +90,16 @@ function Sidenav({ color = "info", brand = "", brandName, routes, ...rest }) {
   useEffect(() => {
     // A function that sets the mini state of the sidenav.
     function handleMiniSidenav() {
-      setMiniSidenav(dispatch, window.innerWidth < 1200);
-      setTransparentSidenav(
-        dispatch,
-        window.innerWidth < 1200 ? false : transparentSidenav
-      );
-      setWhiteSidenav(
-        dispatch,
-        window.innerWidth < 1200 ? false : whiteSidenav
-      );
+      const shouldMini = window.innerWidth < 1200;
+      if (miniSidenav !== shouldMini) setMiniSidenav(dispatch, shouldMini);
+
+      const nextTransparent = shouldMini ? false : transparentSidenav;
+      if (transparentSidenav !== nextTransparent) {
+        setTransparentSidenav(dispatch, nextTransparent);
+      }
+
+      const nextWhite = shouldMini ? false : whiteSidenav;
+      if (whiteSidenav !== nextWhite) setWhiteSidenav(dispatch, nextWhite);
     }
 
     /** 
@@ -111,7 +112,7 @@ function Sidenav({ color = "info", brand = "", brandName, routes, ...rest }) {
 
     // Remove event listener on cleanup
     return () => window.removeEventListener("resize", handleMiniSidenav);
-  }, [dispatch, location]);
+  }, [dispatch, miniSidenav, transparentSidenav, whiteSidenav]);
 
   // Render all the nested collapse items from the routes.js
   const renderNestedCollapse = (collapse) => {
