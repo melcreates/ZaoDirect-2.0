@@ -101,22 +101,20 @@ function Analytics() {
         setRole(currentRole);
 
         if (currentRole === "ADMIN") {
-          const ts = Date.now();
           const [listingRows, procurementRows, batchRows, intlRows] = await Promise.all([
-            HttpService.get(`/listings?ts=${ts}`),
-            HttpService.get(`/ops/farmer-purchase-orders?ts=${ts}`),
-            HttpService.get(`/ops/batches?ts=${ts}`),
-            HttpService.get(`/ops/international-orders?ts=${ts}`),
+            HttpService.get("/listings"),
+            HttpService.get("/ops/farmer-purchase-orders"),
+            HttpService.get("/ops/batches"),
+            HttpService.get("/ops/international-orders"),
           ]);
           setListings(Array.isArray(listingRows) ? listingRows : []);
           setProcurements(Array.isArray(procurementRows) ? procurementRows : []);
           setBatches(Array.isArray(batchRows) ? batchRows : []);
           setIntlOrders(Array.isArray(intlRows) ? intlRows : []);
         } else {
-          const ts = Date.now();
           const [listingRows, mineOrders] = await Promise.all([
-            HttpService.get(`/listings?ts=${ts}`),
-            HttpService.get(`/ops/farmer-purchase-orders/mine?ts=${ts}`),
+            HttpService.get("/listings"),
+            HttpService.get("/ops/farmer-purchase-orders/mine"),
           ]);
           const myId = me?.id;
           const allListings = Array.isArray(listingRows) ? listingRows : [];

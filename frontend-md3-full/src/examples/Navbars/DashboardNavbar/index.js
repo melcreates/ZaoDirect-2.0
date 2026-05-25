@@ -13,7 +13,7 @@ Coded by www.creative-tim.com
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // react-router components
 import { useLocation, useNavigate } from "react-router-dom";
@@ -75,6 +75,7 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
   const [notificationCount, setNotificationCount] = useState(0);
   const [notificationText, setNotificationText] = useState("No pending workflow notifications.");
   const [notificationRoute, setNotificationRoute] = useState("");
+  const notificationLoadRef = useRef({ inFlight: false, lastRun: 0 });
   const location = useLocation();
   const route = location.pathname.split("/").slice(1);
 
@@ -110,6 +111,12 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
   useEffect(() => {
     let mounted = true;
     const loadNotifications = async () => {
+      const now = Date.now();
+      if (notificationLoadRef.current.inFlight) return;
+      // Throttle background refreshes to reduce repeated API work while navigating.
+      if (now - notificationLoadRef.current.lastRun < 20_000) return;
+
+      notificationLoadRef.current.inFlight = true;
       try {
         const me = await AuthService.getProfile();
         const role = String(me?.role || "").toUpperCase();
@@ -153,14 +160,19 @@ function DashboardNavbar({ absolute = false, light = false, isMini = false }) {
         setNotificationCount(0);
         setNotificationRoute("");
         setNotificationText("Unable to load notifications right now.");
+      } finally {
+        notificationLoadRef.current.inFlight = false;
+        notificationLoadRef.current.lastRun = Date.now();
       }
     };
 
     loadNotifications();
+    const intervalId = window.setInterval(loadNotifications, 60_000);
     return () => {
       mounted = false;
+      window.clearInterval(intervalId);
     };
-  }, [location.pathname]);
+  }, []);
 
   const handleMiniSidenav = () => setMiniSidenav(dispatch, !miniSidenav);
   const handleOpenNotificationsMenu = (event) => setOpenNotificationsMenu(event.currentTarget);

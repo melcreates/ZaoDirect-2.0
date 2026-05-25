@@ -13,7 +13,7 @@ Coded by www.creative-tim.com
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 
 // react-router components
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
@@ -107,7 +107,7 @@ export default function App() {
   };
 
   // Cache for the rtl
-  useMemo(() => {
+  useEffect(() => {
     const cacheRtl = createCache({
       key: "rtl",
       stylisPlugins: [rtlPlugin],
@@ -148,12 +148,26 @@ export default function App() {
   }, [pathname]);
 
   useEffect(() => {
-    if (!isAuthenticated && !pathname.startsWith("/authentication/")) {
-      window.location.replace("/authentication/sign-in");
-      return;
-    }
     setUserRouteProfile(readUserProfile());
   }, [pathname, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const preload = () => {
+      import("layouts/dashboards/analytics");
+      import("layouts/dashboards/sales");
+      import("layouts/ecommerce/products/product-page");
+      import("layouts/ecommerce/orders/order-list");
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(preload, { timeout: 1500 });
+      return () => window.cancelIdleCallback(id);
+    }
+
+    const fallbackTimer = window.setTimeout(preload, 500);
+    return () => window.clearTimeout(fallbackTimer);
+  }, [isAuthenticated]);
 
   const routesWithLiveUser = useMemo(
     () =>
@@ -197,7 +211,7 @@ export default function App() {
           <Route
             exact
             path={route.route}
-            element={routeElement}
+            element={<Suspense fallback={<MDBox minHeight="10rem" />}>{routeElement}</Suspense>}
             key={route.key}
           />
         );
