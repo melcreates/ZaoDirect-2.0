@@ -3,6 +3,26 @@ const GET_CACHE_TTL_MS = 30_000;
 const getCache = new Map();
 const inflightGets = new Map();
 
+function triggerAuthLogoutOnce() {
+  if (typeof window === "undefined") return;
+  const guardKey = "__zaodirect_auth_redirecting__";
+  if (window.sessionStorage.getItem(guardKey) === "1") return;
+
+  window.sessionStorage.setItem(guardKey, "1");
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const signInPath = "/authentication/sign-in";
+  if (!currentPath.startsWith(signInPath)) {
+    window.location.replace(signInPath);
+    return;
+  }
+
+  // If already on sign-in, remove guard quickly so future expirations still redirect.
+  window.setTimeout(() => window.sessionStorage.removeItem(guardKey), 250);
+}
+
 function shouldBypassCache(path, options = {}) {
   if (options?.cache === "no-store") return true;
   if (path.includes("ts=")) return true;
@@ -47,6 +67,21 @@ async function request(path, options = {}) {
     if (!response.ok) {
       const message =
         (typeof data === "object" && data?.message) || `Request failed (${response.status})`;
+
+      const normalized = String(message || "").toLowerCase();
+      const isAuthFailure =
+        response.status === 401 ||
+        normalized.includes("invalid token") ||
+        normalized.includes("unauthorized") ||
+        normalized.includes("jwt expired") ||
+        normalized.includes("token expired");
+
+      if (isAuthFailure) {
+        getCache.clear();
+        inflightGets.clear();
+        triggerAuthLogoutOnce();
+      }
+
       throw new Error(message);
     }
 
