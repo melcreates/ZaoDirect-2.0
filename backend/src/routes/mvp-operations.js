@@ -1861,8 +1861,10 @@ router.get("/finance-overview", requireRole("ADMIN"), async (_req, res, next) =>
       ),
       query(
         `SELECT
+           currency,
            COALESCE(SUM(amount),0) AS total_cost_value
-         FROM cost_entries`
+         FROM cost_entries
+         GROUP BY currency`
       ),
       query(
         `SELECT
@@ -1885,6 +1887,10 @@ router.get("/finance-overview", requireRole("ADMIN"), async (_req, res, next) =>
 
     const totalPayoutValueUsd = Object.entries(payoutByCurrency.total || {}).reduce(
       (sum, [currency, value]) => sum + convertToUsd(value, currency),
+      0
+    );
+    const totalCostValueUsd = (costsAgg.rows || []).reduce(
+      (sum, row) => sum + convertToUsd(row.total_cost_value, row.currency),
       0
     );
     const pendingPayoutValueUsd = Object.entries(payoutByCurrency.pending || {}).reduce(
@@ -1912,7 +1918,7 @@ router.get("/finance-overview", requireRole("ADMIN"), async (_req, res, next) =>
         USD_KES: usdToKesRate,
         EUR_KES: eurToKesRate,
       },
-      totalCostValue: Number(costsAgg.rows[0].total_cost_value || 0),
+      totalCostValue: Number(totalCostValueUsd || 0),
       openInternationalOrders: Number(openOrdersAgg.rows[0].open_international_orders || 0),
     });
   } catch (error) {
@@ -2341,4 +2347,6 @@ router.patch("/dispute-cases/:id", requireRole("ADMIN"), async (req, res, next) 
 });
 
 export default router;
+
+
 
