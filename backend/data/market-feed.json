@@ -1,0 +1,112 @@
+[
+  {
+    "cropType": "Avocado (Hass)",
+    "pricePerUnit": 118,
+    "currency": "KES",
+    "unit": "kg",
+    "marketName": "Nairobi Wakulima",
+    "county": "Nairobi",
+    "observedAt": "2026-05-28T07:00:00Z",
+    "sourceName": "ZaoDirect Market Desk",
+    "sourceUrl": "https://app.zaodirect.com/market-insights"
+  },
+  {
+    "cropType": "Mango (Kent)",
+    "pricePerUnit": 92,
+    "currency": "KES",
+    "unit": "kg",
+    "marketName": "Mombasa Kongowea",
+    "county": "Mombasa",
+    "observedAt": "2026-05-28T07:00:00Z",
+    "sourceName": "ZaoDirect Market Desk",
+    "sourceUrl": "https://app.zaodirect.com/market-insights"
+  },
+  {
+    "cropType": "French Beans",
+    "pricePerUnit": 145,
+    "currency": "KES",
+    "unit": "kg",
+    "marketName": "Nakuru Main Market",
+    "county": "Nakuru",
+    "observedAt": "2026-05-28T07:00:00Z",
+    "sourceName": "ZaoDirect Market Desk",
+    "sourceUrl": "https://app.zaodirect.com/market-insights"
+  },
+  {
+    "cropType": "Herbs (Basil)",
+    "pricePerUnit": 210,
+    "currency": "KES",
+    "unit": "kg",
+    "marketName": "Nairobi Industrial Area",
+    "county": "Nairobi",
+    "observedAt": "2026-05-28T07:00:00Z",
+    "sourceName": "ZaoDirect Market Desk",
+    "sourceUrl": "https://app.zaodirect.com/market-insights"
+  },
+  {
+    "cropType": "Pineapple",
+    "pricePerUnit": 80,
+    "currency": "KES",
+    "unit": "kg",
+    "marketName": "Thika Municipal Market",
+    "county": "Kiambu",
+    "observedAt": "2026-05-28T07:00:00Z",
+    "sourceName": "ZaoDirect Market Desk",
+    "sourceUrl": "https://app.zaodirect.com/market-insights"
+  },
+  {
+    "cropType": "Passion Fruit (Purple)",
+    "pricePerUnit": 175,
+    "currency": "KES",
+    "unit": "kg",
+    "marketName": "Nyeri Fresh Produce Market",
+    "county": "Nyeri",
+    "observedAt": "2026-05-28T07:00:00Z",
+    "sourceName": "ZaoDirect Market Desk",
+    "sourceUrl": "https://app.zaodirect.com/market-insights"
+  },
+  {
+    "cropType": "Chili (Bird Eye)",
+    "pricePerUnit": 260,
+    "currency": "KES",
+    "unit": "kg",
+    "marketName": "Eldoret Municipal Market",
+    "county": "Uasin Gishu",
+    "observedAt": "2026-05-28T07:00:00Z",
+    "sourceName": "ZaoDirect Market Desk",
+    "sourceUrl": "https://app.zaodirect.com/market-insights"
+  },
+  {
+    "cropType": "Macadamia",
+    "pricePerUnit": 320,
+    "currency": "KES",
+    "unit": "kg",
+    "marketName": "Murang'a Cooperative Collection",
+    "county": "Murang'a",
+    "observedAt": "2026-05-28T07:00:00Z",
+    "sourceName": "ZaoDirect Market Desk",
+    "sourceUrl": "https://app.zaodirect.com/market-insights"
+  },
+  {
+    "cropType": "Banana",
+    "pricePerUnit": 65,
+    "currency": "KES",
+    "unit": "kg",
+    "marketName": "Kisumu Kibuye Market",
+    "county": "Kisumu",
+    "observedAt": "2026-05-28T07:00:00Z",
+    "sourceName": "ZaoDirect Market Desk",
+    "sourceUrl": "https://app.zaodirect.com/market-insights"
+  },
+  {
+    "cropType": "Tomato",
+    "pricePerUnit": 95,
+    "currency": "KES",
+    "unit": "kg",
+    "marketName": "Nairobi Marikiti",
+    "county": "Nairobi",
+    "observedAt": "2026-05-28T07:00:00Z",
+    "sourceName": "ZaoDirect Market Desk",
+    "sourceUrl": "https://app.zaodirect.com/market-insights"
+  }
+]
